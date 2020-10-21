@@ -45,6 +45,7 @@ export function recoveryLoginStatus(context, payload) {
     context.state.accountInfo.password = accountInfo.password;
     context.state.accountInfo.loginInfo = accountInfo.loginInfo;
     context.state.accountInfo.isLogin = true;
+    context.dispatch({ type: "loadBookshelf"});
   }
   else {
     context.dispatch({ type: "openPage", pageName: "Login" });
@@ -74,6 +75,49 @@ export function reflashLoginInfo(context, payload) {
   });
 }
 
-export function LoadBookshelf(){
-  
+export function loadBookshelf(context, payload) {
+  const server = getServer(context.state.webApp);
+  server.getBookshelfList({
+    accountInfo: context.state.accountInfo,
+    refresh: payload.refresh
+  }).then(bookshelfList => {
+    bookshelfList = bookshelfList || [];
+    context.state.bookshelfList = bookshelfList;
+    if (bookshelfList.length > 0 && !context.state.currentBookshelfId) {
+      context.state.currentBookshelfId = bookshelfList[0].bookshelfId;
+      context.dispatch({ type: "loadShelfBookList", shelfId: context.state.currentBookshelfId });
+    }
+  });
+}
+
+export function loadShelfBookList(context, payload) {
+  const server = getServer(context.state.webApp);
+  server.getShelfBookList({
+    accountInfo: context.state.accountInfo,
+    shelfId: payload.shelfId,
+    refresh: payload.refresh
+  }).then(bookshelf => {
+    const { bookshelfList } = context.state;
+    for (let i = 0; i < bookshelfList.length; i++) {
+      const bs2 = bookshelfList[i];
+      if (bs2.bookshelfId === bookshelf.bookshelfId) {
+        bs2.books = bookshelf.books;
+        bs2.loaded = true;
+      }
+    }
+  });
+}
+
+export function switchBookshelf(context, payload) {
+  const { bookshelfList } = context.state;
+  context.state.currentBookshelfId = payload.bookshelfId;
+  for (let i = 0; i < bookshelfList.length; i++) {
+    const bookshelf = bookshelfList[i];
+    if (bookshelf.bookshelfId === payload.bookshelfId) {
+      if (!bookshelf.loaded) {
+        context.dispatch({ type: "loadShelfBookList", shelfId: bookshelf.bookshelfId });
+        return;
+      }
+    }
+  }
 }

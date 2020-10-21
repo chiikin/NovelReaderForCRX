@@ -17,11 +17,13 @@ export default new Vuex.Store({
       password: "",
       loginInfo: {}   //登录成功后的状态信息
     },
-    bookshelf: {
+    bookshelfList: [{
       bookshelfId: "",
       bookshelfName: "",
+      loaded: false,
       books: []
-    }
+    }],
+    currentBookshelfId: ""
   },
   getters,
   mutations,

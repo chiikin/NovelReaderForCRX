@@ -16,7 +16,7 @@ export default {
 
 <style lang="scss" scoped>
 .nr-app {
-  width: 300px;
+  width: 350px;
   height: 500px;
 }
 </style>
