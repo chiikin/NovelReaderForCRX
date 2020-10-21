@@ -16,17 +16,14 @@
       :rules="[{ required: true, message: '请填写密码' }]"
     />
     <div style="margin: 16px">
-      <van-button round block type="info" native-type="submit">
-        提交
-      </van-button>
+      <van-button round block type="info" native-type="submit">登录</van-button>
     </div>
   </van-form>
 </template>
 
 <script>
-import { login, getLogonInfo } from "../../server/hbookerServer";
 export default {
-  name: "HbookerLogin",
+  name: "Login",
   data() {
     return {
       account: "",
@@ -34,34 +31,27 @@ export default {
       loading: false,
     };
   },
-  created() {
-    //todo 自动登录
-    this.autoLogin();
-  },
+  // created() {
+  //   //todo 自动登录
+  //   //this.autoLogin();
+  // },
   methods: {
     onSubmit() {
       this.loading = true;
-      login({
+      this.$store.dispatch({
+        type: "login",
         account: this.account,
         password: this.password,
-      })
-        .then(() => {
-          this.loading = false;
-          this.$toast.success("登录成功");
-          //TODO 跳转书架
-        })
-        .catch(() => {
-          this.loading = false;
-        });
+      });
     },
-    autoLogin() {
-      const hbooker = getLogonInfo();
-      if (hbooker.account && hbooker.password) {
-        this.account = hbooker.account;
-        this.password = hbooker.password;
-        this.onSubmit();
-      }
-    },
+    // autoLogin() {
+    //   const hbooker = getLoginInfo();
+    //   if (hbooker.account && hbooker.password) {
+    //     this.account = hbooker.account;
+    //     this.password = hbooker.password;
+    //     this.onSubmit();
+    //   }
+    // },
   },
 };
 </script>

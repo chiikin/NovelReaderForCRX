@@ -10,10 +10,18 @@ Vue.use(Vuex);
 export default new Vuex.Store({
   state: {
     webApp: "hbooker",
-    pageComponent:"",
-    userInfo: {
-      userName: "",
+    pageComponent: "Bookshelf",
+    accountInfo: {
+      isLogin: false,
+      account: "",
+      password: "",
+      loginInfo: {}   //登录成功后的状态信息
     },
+    bookshelf: {
+      bookshelfId: "",
+      bookshelfName: "",
+      books: []
+    }
   },
   getters,
   mutations,

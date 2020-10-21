@@ -1,19 +1,15 @@
 <template>
   <div class="nr-app">
-    <p>popup.js</p>
-    <hbooker-login></hbooker-login>
+    <component v-bind:is="pageComponent"></component>
   </div>
 </template>
 
 <script>
-import HbookerLogin from "./components/HbookerLogin.vue";
-
 export default {
-  components: {
-    HbookerLogin,
-  },
-  mounted() {
-    console.log("popup.js mounted");
+  computed: {
+    pageComponent() {
+      return this.$store.state.pageComponent;
+    },
   },
 };
 </script>

@@ -4,20 +4,17 @@ import Vue from "vue";
 
 import { localStorage as storage } from "../utils/webStorage";
 
-// const mixin = {
-//   baseUrl: "https://app.hbooker.com", //url前缀
-//   standardFlag: true,
-//   timeout: 15000,
-//   withCredentials: false, //跨域请求是否使用凭证
-// };
-
 const para = {
   app_version: "2.3.020",
   device_token: "ciweimao_powered_by_chiikin",
 };
+// 注意在manifest.json文件中添加权限，否则有跨域问题
+// permissions:[""https://*/*"]
+
 const ajax = axios.create({
   baseURL: "https://app.hbooker.com",
   timeout: 60000 * 10, //10分钟
+  withCredentials: false,   ////跨域请求是否使用凭证
 });
 
 const vueInst = new Vue({});
@@ -69,6 +66,16 @@ ajax.interceptors.response.use(
   }
 );
 
+// 添加请求拦截器
+// ajax.interceptors.request.use(function (config) {
+//   // 在发送请求之前做些什么
+//   console.log('request', config);
+//   return config;
+// }, function (error) {
+//   // 对请求错误做些什么
+//   return Promise.reject(error);
+// });
+
 function decrypt(data, key) {
   if (key == null) {
     key = crypto
@@ -109,24 +116,24 @@ function login({ account, password }) {
         let json = JSON.parse(data);
         switch (json.code) {
           case 100000:
-            console.log("成功", json);
+            //console.log("成功", json);
             //storage.setObject
             const accountInfo = storage.getObject("accountInfo", {});
             accountInfo.hbooker = {
               account,
               password,
-              loginResult: json.data,
+              loginInfo: json.data,
             };
             storage.setObject("accountInfo", accountInfo);
-            resolve();
+            resolve(accountInfo.hbooker);
             break;
           case 200100:
-            console.log("error");
+            //console.log("error");
             //this.$router.push("/login");
             reject();
             break;
           default:
-            console.log("错误", json.tip);
+            //console.log("错误", json.tip);
             vueInst.$toast.fail({
               title: "错误",
               message: json.tip,
@@ -136,10 +143,10 @@ function login({ account, password }) {
       });
   });
 }
-function getLogonInfo() {
-  const accountInfo = storage.getObject("accountInfo", {});
-  const hbooker = accountInfo.hbooker || {};
 
-  return hbooker;
+function getLoginInfo() {
+  const accountInfo = storage.getObject("accountInfo", {});
+  return accountInfo.hbooker || {};
 }
-export { login, getLogonInfo };
+
+export default { login, getLoginInfo };
