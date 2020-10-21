@@ -10,15 +10,15 @@ const para = {
 };
 
 const storageKeys = {
-  bookshelf: "hbooker:bookshelfList"
-}
+  bookshelf: "hbooker:bookshelfList",
+};
 // 注意在manifest.json文件中添加权限，否则有跨域问题
 // permissions:[""https://*/*"]
 
 const ajax = axios.create({
   baseURL: "https://app.hbooker.com",
   timeout: 60000 * 10, //10分钟
-  withCredentials: false,   ////跨域请求是否使用凭证
+  withCredentials: false, ////跨域请求是否使用凭证
 });
 
 const vueInst = new Vue({});
@@ -31,10 +31,7 @@ ajax.interceptors.response.use(
       data = data.substr(0, lastIndex + 1);
       let json = JSON.parse(data);
       response.data = json;
-    }
-    catch (e) {
-
-    }
+    } catch (e) {}
     return response;
   },
   (error) => {
@@ -108,6 +105,7 @@ function httpGet(url, options) {
     ajax
       .get(url, options)
       .then((response) => {
+        console.log(response);
         let json = response.data || {};
         switch (json.code) {
           case 100000:
@@ -126,14 +124,15 @@ function httpGet(url, options) {
             });
             reject();
         }
-      }).catch(err => {
+      })
+      .catch((err) => {
         vueInst.$toast.fail({
           title: "错误",
           message: "服务器错误，请稍后重试!",
         });
         reject();
-      });;
-  })
+      });
+  });
 }
 
 function login({ account, password }) {
@@ -143,17 +142,19 @@ function login({ account, password }) {
       passwd: password,
     });
     httpGet("/signup/login", {
-      params: params
-    }).then((data) => {
-      const accountInfo = storage.getObject("accountInfo", {});
-      accountInfo.hbooker = {
-        account,
-        password,
-        loginInfo: data,
-      };
-      storage.setObject("accountInfo", accountInfo);
-      resolve(accountInfo.hbooker);
-    }).catch(err => reject(err));
+      params: params,
+    })
+      .then((data) => {
+        const accountInfo = storage.getObject("accountInfo", {});
+        accountInfo.hbooker = {
+          account,
+          password,
+          loginInfo: data,
+        };
+        storage.setObject("accountInfo", accountInfo);
+        resolve(accountInfo.hbooker);
+      })
+      .catch((err) => reject(err));
   });
 }
 
@@ -167,32 +168,33 @@ function getLoginInfo() {
  */
 function getBookshelfList({ accountInfo, refresh }) {
   const { loginInfo } = accountInfo;
-  const bookshelfList = storage.getObject(storageKeys.bookshelf)
+  const bookshelfList = storage.getObject(storageKeys.bookshelf);
   if (!bookshelfList || refresh) {
     return new Promise((resolve, reject) => {
       let params = Object.assign({}, para, {
         login_token: loginInfo.login_token,
-        account: loginInfo.reader_info.account
-      })
-      httpGet('/bookshelf/get_shelf_list', {
-        params: params
-      }).then(data => {
-        const ret = data.shelf_list.map(x => {
-          return {
-            bookshelfId: x.shelf_id,
-            bookshelfName: x.shelf_name,
-            loaded: false,
-            books: []
-          };
-        });
-        storage.setObject(storageKeys.bookshelf, ret);
-        resolve(ret);
-      }).catch(err => {
-        reject(err);
+        account: loginInfo.reader_info.account,
       });
+      httpGet("/bookshelf/get_shelf_list", {
+        params: params,
+      })
+        .then((data) => {
+          const ret = data.shelf_list.map((x) => {
+            return {
+              bookshelfId: x.shelf_id,
+              bookshelfName: x.shelf_name,
+              loaded: false,
+              books: [],
+            };
+          });
+          storage.setObject(storageKeys.bookshelf, ret);
+          resolve(ret);
+        })
+        .catch((err) => {
+          reject(err);
+        });
     });
-  }
-  else {
+  } else {
     return Promise.resolve(bookshelfList);
   }
 }
@@ -202,7 +204,7 @@ function getShelfBookList({ accountInfo, shelfId, refresh }) {
   const bookshelfList = storage.getObject(storageKeys.bookshelf);
   let bookshelf;
   if (bookshelfList) {
-    const ret = bookshelfList.filter(x => x.bookshelfId === shelfId);
+    const ret = bookshelfList.filter((x) => x.bookshelfId === shelfId);
     bookshelf = ret && ret.length > 0 ? ret[0] : undefined;
   }
 
@@ -217,78 +219,81 @@ function getShelfBookList({ accountInfo, shelfId, refresh }) {
       count: 999,
       shelf_id: shelfId,
       page: 0,
-      order: 'last_read_time'
-    })
-    httpGet('/bookshelf/get_shelf_book_list_new', {
-      params: params
-    }).then(data => {
-      const books = data.book_list.map(book => {
-        const bookInfo = {
-          bookId: book.book_info.book_id,
-          bookName: book.book_info.book_name,
-          author: book.book_info.author_name,
-          cover: book.book_info.cover,
-          date: book.book_info.last_chapter_info.uptime,
-          totalWordCount: book.book_info.total_word_count,
-          lastReadInfo: undefined,
-          lastChapterInfo: {
-            chapterId: book.book_info.last_chapter_info.chapter_id,
-            chapterIndex: book.book_info.last_chapter_info.chapter_index,
-            title: book.book_info.last_chapter_info.chapter_title,
-            date: book.book_info.last_chapter_info.uptime
-          },
-          // original: book
-        };
-        if (book.last_read_chapter_id) {
-          bookInfo.lastReadInfo = {
-            chapterId: book.last_read_chapter_id,
-            title: book.last_read_chapter_title,
-            date: book.last_read_chapter_update_time
-          };
-        }
-        return bookInfo;
-      });
-
-      bookshelf.books = books;
-      bookshelf.loaded = true;
-      storage.setObject(storageKeys.bookshelf, bookshelfList);
-
-      resolve(bookshelf);
-    }).catch(err => {
-      reject(err);
+      order: "last_read_time",
     });
+    httpGet("/bookshelf/get_shelf_book_list_new", {
+      params: params,
+    })
+      .then((data) => {
+        const books = data.book_list.map((book) => {
+          const bookInfo = {
+            bookId: book.book_info.book_id,
+            bookName: book.book_info.book_name,
+            author: book.book_info.author_name,
+            cover: book.book_info.cover,
+            date: book.book_info.last_chapter_info.uptime,
+            totalWordCount: book.book_info.total_word_count,
+            lastReadInfo: undefined,
+            lastChapterInfo: {
+              chapterId: book.book_info.last_chapter_info.chapter_id,
+              chapterIndex: book.book_info.last_chapter_info.chapter_index,
+              title: book.book_info.last_chapter_info.chapter_title,
+              date: book.book_info.last_chapter_info.uptime,
+            },
+            // original: book
+          };
+          if (book.last_read_chapter_id) {
+            bookInfo.lastReadInfo = {
+              chapterId: book.last_read_chapter_id,
+              title: book.last_read_chapter_title,
+              date: book.last_read_chapter_update_time,
+            };
+          }
+          return bookInfo;
+        });
+
+        bookshelf.books = books;
+        bookshelf.loaded = true;
+        storage.setObject(storageKeys.bookshelf, bookshelfList);
+
+        resolve(bookshelf);
+      })
+      .catch((err) => {
+        reject(err);
+      });
   });
 }
 
-function clearStorage() {
-
-}
+function clearStorage() {}
 
 function getChapter({ accountInfo, bookId, chapterId }) {
   return new Promise((resolve, reject) => {
-    getChapterKey({ accountInfo, bookId, chapterId }).then((command) => {
-      getChapterContent({ accountInfo, bookId, chapterId, command })
-        .then(data => {
-          let chapterInfo = data.chapter_info;
-          if (Object.keys(chapterInfo).length != 0) {
-            let contentTitle = chapterInfo.chapter_title
-            let contentText = chapterInfo.txt_content
-            let decryptContent = decrypt(contentText, command);
-            const readingChapterInfo = {
-              bookId: bookId,
-              chapterId: chapterId,
-              chapterIndex: "",
-              title: contentTitle,
-              loaded: false,
-              content: decryptContent,
-              original: data
-            };
-            resolve(readingChapterInfo);
-          } else {
-            reject("");
-          }
-        }).catch(err => reject(err));
-    }).catch(err => reject(err));
+    getChapterKey({ accountInfo, bookId, chapterId })
+      .then((command) => {
+        getChapterContent({ accountInfo, bookId, chapterId, command })
+          .then((data) => {
+            let chapterInfo = data.chapter_info;
+            if (Object.keys(chapterInfo).length != 0) {
+              let contentTitle = chapterInfo.chapter_title;
+              let contentText = chapterInfo.txt_content;
+              let decryptContent = decrypt(contentText, command);
+              const readingChapterInfo = {
+                bookId: bookId,
+                chapterId: chapterId,
+                chapterIndex: "",
+                title: contentTitle,
+                loaded: false,
+                content: decryptContent,
+                original: data,
+              };
+              resolve(readingChapterInfo);
+            } else {
+              reject("");
+            }
+          })
+          .catch((err) => reject(err));
+      })
+      .catch((err) => reject(err));
   });
 }
 
@@ -298,15 +303,17 @@ function getChapterKey({ accountInfo, bookId, chapterId }) {
     let params = Object.assign({}, para, {
       login_token: loginInfo.login_token,
       account: loginInfo.reader_info.account,
-      chapter_id: chapterId
-    })
-    httpGet('/chapter/get_chapter_cmd', {
-      params: params
-    }).then(data => {
-      resolve(data.command);
-    }).catch(err => {
-      reject(err);
+      chapter_id: "" + chapterId,
     });
+    httpGet("/chapter/get_chapter_cmd", {
+      params: params,
+    })
+      .then((data) => {
+        resolve(data.command);
+      })
+      .catch((err) => {
+        reject(err);
+      });
   });
 }
 
@@ -316,17 +323,26 @@ function getChapterContent({ accountInfo, chapterId, command }) {
     let params = Object.assign({}, para, {
       login_token: loginInfo.login_token,
       account: loginInfo.reader_info.account,
-      chapter_id: chapterId,
-      chapter_command: command
-    })
-    httpGet('/chapter/get_cpt_ifm', {
-      params: params
-    }).then(data => {
-      resolve(data.command);
-    }).catch(err => {
-      reject(err);
+      chapter_id: "" + chapterId,
+      chapter_command: command,
     });
+    httpGet("/chapter/get_cpt_ifm", {
+      params: params,
+    })
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => {
+        reject(err);
+      });
   });
 }
 
-export default { login, getLoginInfo, getBookshelfList, getShelfBookList, getChapter, clearStorage };
+export default {
+  login,
+  getLoginInfo,
+  getBookshelfList,
+  getShelfBookList,
+  getChapter,
+  clearStorage,
+};

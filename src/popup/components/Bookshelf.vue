@@ -33,7 +33,7 @@
           <img :src="book.cover" @click="openBookWithLastRead(book)" />
         </div>
         <div class="book-info">
-          <p @click="openBookWithLastRead(book)" >
+          <p @click="openBookWithLastRead(book)">
             <span class="book-title">{{ book.bookName }}</span>
             <!-- <span class="book-update-mark">更新</span> -->
           </p>
@@ -54,8 +54,8 @@
 </template>
 
 <script>
-import moment from "moment"
-moment.locale("zh-CN")
+import moment from "moment";
+moment.locale("zh-CN");
 export default {
   name: "Bookshelf",
   data() {
@@ -108,9 +108,13 @@ export default {
     getUpdateTimeDisplay(time) {
       return moment(time, "YYYY-MM-DD HH:mm:ss").fromNow();
     },
-    openBookWithLastRead(book){
-
-    }
+    openBookWithLastRead(book) {
+      this.$store.dispatch({
+        type: "viewChapter",
+        bookId: book.bookId,
+        chapterId: book.lastReadInfo.chapterId,
+      });
+    },
   },
 };
 </script>
