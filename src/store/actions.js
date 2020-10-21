@@ -1,7 +1,10 @@
 import * as types from './mutation-types'
 import { getServer } from "../server"
+import { localStorage as storage } from "../utils/webStorage";
 
-
+const storageKeys = {
+  readingChapter: "readingChapter"
+}
 
 export const setFoo = ({ commit }, payload) => {
   commit(types.UPDATE_FOO, payload)
@@ -45,7 +48,7 @@ export function recoveryLoginStatus(context, payload) {
     context.state.accountInfo.password = accountInfo.password;
     context.state.accountInfo.loginInfo = accountInfo.loginInfo;
     context.state.accountInfo.isLogin = true;
-    context.dispatch({ type: "loadBookshelf"});
+    context.dispatch({ type: "loadBookshelf" });
   }
   else {
     context.dispatch({ type: "openPage", pageName: "Login" });
@@ -120,4 +123,27 @@ export function switchBookshelf(context, payload) {
       }
     }
   }
+}
+
+export function loadReadingChapter(context, payload) {
+  const chapterInfo = storage.getObject(storageKeys.readingChapter);
+  if (chapterInfo) {
+    context.state.readingChapter = chapterInfo;
+  }
+  else {
+    context.dispatch({ type: "loadChapter", bookId: '', chapterId: "" })
+  }
+}
+
+export function loadChapter(context, payload) {
+  const server = getServer(context.state.webApp);
+
+  // todo: 当没有reading信息时读取第一章
+  server.getChapter({
+    accountInfo: context.state.accountInfo,
+    bookId: payload.bookId,
+    chapterId: payload.chapterId
+  }).then(data => {
+    context.state.readingChapter = data;
+  });
 }

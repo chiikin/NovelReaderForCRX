@@ -237,7 +237,7 @@ function getShelfBookList({ accountInfo, shelfId, refresh }) {
             title: book.book_info.last_chapter_info.chapter_title,
             date: book.book_info.last_chapter_info.uptime
           },
-          original: book
+          // original: book
         };
         if (book.last_read_chapter_id) {
           bookInfo.lastReadInfo = {
@@ -264,4 +264,69 @@ function clearStorage() {
 
 }
 
-export default { login, getLoginInfo, getBookshelfList, getShelfBookList, clearStorage };
+function getChapter({ accountInfo, bookId, chapterId }) {
+  return new Promise((resolve, reject) => {
+    getChapterKey({ accountInfo, bookId, chapterId }).then((command) => {
+      getChapterContent({ accountInfo, bookId, chapterId, command })
+        .then(data => {
+          let chapterInfo = data.chapter_info;
+          if (Object.keys(chapterInfo).length != 0) {
+            let contentTitle = chapterInfo.chapter_title
+            let contentText = chapterInfo.txt_content
+            let decryptContent = decrypt(contentText, command);
+            const readingChapterInfo = {
+              bookId: bookId,
+              chapterId: chapterId,
+              chapterIndex: "",
+              title: contentTitle,
+              loaded: false,
+              content: decryptContent,
+              original: data
+            };
+            resolve(readingChapterInfo);
+          } else {
+            reject("");
+          }
+        }).catch(err => reject(err));
+    }).catch(err => reject(err));
+  });
+}
+
+function getChapterKey({ accountInfo, bookId, chapterId }) {
+  const { loginInfo } = accountInfo;
+  return new Promise((resolve, reject) => {
+    let params = Object.assign({}, para, {
+      login_token: loginInfo.login_token,
+      account: loginInfo.reader_info.account,
+      chapter_id: chapterId
+    })
+    httpGet('/chapter/get_chapter_cmd', {
+      params: params
+    }).then(data => {
+      resolve(data.command);
+    }).catch(err => {
+      reject(err);
+    });
+  });
+}
+
+function getChapterContent({ accountInfo, chapterId, command }) {
+  const { loginInfo } = accountInfo;
+  return new Promise((resolve, reject) => {
+    let params = Object.assign({}, para, {
+      login_token: loginInfo.login_token,
+      account: loginInfo.reader_info.account,
+      chapter_id: chapterId,
+      chapter_command: command
+    })
+    httpGet('/chapter/get_cpt_ifm', {
+      params: params
+    }).then(data => {
+      resolve(data.command);
+    }).catch(err => {
+      reject(err);
+    });
+  });
+}
+
+export default { login, getLoginInfo, getBookshelfList, getShelfBookList, getChapter, clearStorage };

@@ -11,6 +11,15 @@ interface LastChapterInfo {
     date: string
 }
 
+interface ReadingChapterInfo {
+    bookId: string,
+    chapterId: string,
+    chapterIndex: string,
+    title: string,
+    loaded:boolean,
+    content:string
+}
+
 interface BookInfo {
     bookId: string;
     bookName: string;

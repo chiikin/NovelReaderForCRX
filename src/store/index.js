@@ -23,7 +23,15 @@ export default new Vuex.Store({
       loaded: false,
       books: []
     }],
-    currentBookshelfId: ""
+    currentBookshelfId: "",
+    readingChapter: {
+      bookId: "",
+      chapterId: "",
+      chapterIndex: "",
+      title: "",
+      loaded:false,
+      content:""
+    }
   },
   getters,
   mutations,
