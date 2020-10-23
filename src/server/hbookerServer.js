@@ -3,15 +3,17 @@ import crypto from "crypto";
 import Vue from "vue";
 
 import { localStorage as storage } from "../utils/webStorage";
+import identityManager from "./identityManager"
 
 const para = {
-  app_version: "2.3.020",
+  app_version: "2.6.011",
   device_token: "ciweimao_powered_by_chiikin",
 };
 
 const storageKeys = {
   bookshelf: "hbooker:bookshelfList",
 };
+const serverKey = "hbooker";
 // 注意在manifest.json文件中添加权限，否则有跨域问题
 // permissions:[""https://*/*"]
 
@@ -23,6 +25,7 @@ const ajax = axios.create({
 
 const vueInst = new Vue({});
 
+
 ajax.interceptors.response.use(
   (response) => {
     try {
@@ -31,7 +34,10 @@ ajax.interceptors.response.use(
       data = data.substr(0, lastIndex + 1);
       let json = JSON.parse(data);
       response.data = json;
-    } catch (e) {}
+      console.log('ok', response);
+    } catch (e) {
+      console.log('decrypt err', response);
+    }
     return response;
   },
   (error) => {
@@ -77,6 +83,14 @@ ajax.interceptors.response.use(
   }
 );
 
+ajax.interceptors.request.use(function (config) {
+  const identity = identityManager.getIdentity(serverKey) || {};
+  const tokenPara = identity.tokenPara || {};
+  config.params = Object.assign(config.params || {}, para, tokenPara);
+
+  return config;
+});
+
 function decrypt(data, key) {
   if (key == null) {
     key = crypto
@@ -105,11 +119,11 @@ function httpGet(url, options) {
     ajax
       .get(url, options)
       .then((response) => {
-        console.log(response);
-        let json = response.data || {};
-        switch (json.code) {
+        //console.log(response);
+        let data = response.data || {};
+        switch (data.code) {
           case 100000:
-            resolve(json.data);
+            resolve(data.data);
             break;
           // case 200100:
           //   //console.log("error");
@@ -120,9 +134,9 @@ function httpGet(url, options) {
             //console.log("错误", json.tip);
             vueInst.$toast.fail({
               title: "错误",
-              message: json.tip,
+              message: data.tip,
             });
-            reject();
+            reject(data.tip);
         }
       })
       .catch((err) => {
@@ -130,7 +144,7 @@ function httpGet(url, options) {
           title: "错误",
           message: "服务器错误，请稍后重试!",
         });
-        reject();
+        reject("服务器错误，请稍后重试!");
       });
   });
 }
@@ -150,12 +164,32 @@ function login({ account, password }) {
           account,
           password,
           loginInfo: data,
+          tokenPara: {
+            login_token: data.login_token,
+            account: data.reader_info.account,
+            reader_id: data.reader_info.reader_id
+          }
         };
         storage.setObject("accountInfo", accountInfo);
+        identityManager.setIdentity(serverKey, accountInfo.hbooker);
         resolve(accountInfo.hbooker);
       })
       .catch((err) => reject(err));
   });
+}
+
+/**
+ * 从缓存的数据中恢复登录状态
+ */
+function recoverLoginStatus() {
+  const accountInfo = storage.getObject("accountInfo", {});
+  if (accountInfo.hbooker) {
+    identityManager.setIdentity(serverKey, accountInfo.hbooker);
+    return accountInfo.hbooker;
+  }
+  else {
+    return false;
+  }
 }
 
 function getLoginInfo() {
@@ -166,17 +200,12 @@ function getLoginInfo() {
  * 获取书架列表
  * @param {*} parma0 loginInfo:登录信息，refresh:是否从服务器刷新，否则从缓存中加载
  */
-function getBookshelfList({ accountInfo, refresh }) {
-  const { loginInfo } = accountInfo;
+function getBookshelfList({ refresh }) {
   const bookshelfList = storage.getObject(storageKeys.bookshelf);
   if (!bookshelfList || refresh) {
     return new Promise((resolve, reject) => {
-      let params = Object.assign({}, para, {
-        login_token: loginInfo.login_token,
-        account: loginInfo.reader_info.account,
-      });
       httpGet("/bookshelf/get_shelf_list", {
-        params: params,
+        params: {},
       })
         .then((data) => {
           const ret = data.shelf_list.map((x) => {
@@ -199,8 +228,8 @@ function getBookshelfList({ accountInfo, refresh }) {
   }
 }
 
-function getShelfBookList({ accountInfo, shelfId, refresh }) {
-  const { loginInfo } = accountInfo;
+function getShelfBookList({ shelfId, refresh }) {
+
   const bookshelfList = storage.getObject(storageKeys.bookshelf);
   let bookshelf;
   if (bookshelfList) {
@@ -214,8 +243,7 @@ function getShelfBookList({ accountInfo, shelfId, refresh }) {
   // 从服务器加载
   return new Promise((resolve, reject) => {
     let params = Object.assign({}, para, {
-      login_token: loginInfo.login_token,
-      account: loginInfo.reader_info.account,
+
       count: 999,
       shelf_id: shelfId,
       page: 0,
@@ -264,13 +292,13 @@ function getShelfBookList({ accountInfo, shelfId, refresh }) {
   });
 }
 
-function clearStorage() {}
+function clearStorage() { }
 
-function getChapter({ accountInfo, bookId, chapterId }) {
+function getChapter({ bookId, chapterId }) {
   return new Promise((resolve, reject) => {
-    getChapterKey({ accountInfo, bookId, chapterId })
+    getChapterKey({ bookId, chapterId })
       .then((command) => {
-        getChapterContent({ accountInfo, bookId, chapterId, command })
+        getChapterContent({ bookId, chapterId, command })
           .then((data) => {
             let chapterInfo = data.chapter_info;
             if (Object.keys(chapterInfo).length != 0) {
@@ -297,12 +325,10 @@ function getChapter({ accountInfo, bookId, chapterId }) {
   });
 }
 
-function getChapterKey({ accountInfo, bookId, chapterId }) {
-  const { loginInfo } = accountInfo;
+function getChapterKey({ bookId, chapterId }) {
+
   return new Promise((resolve, reject) => {
     let params = Object.assign({}, para, {
-      login_token: loginInfo.login_token,
-      account: loginInfo.reader_info.account,
       chapter_id: "" + chapterId,
     });
     httpGet("/chapter/get_chapter_cmd", {
@@ -317,12 +343,10 @@ function getChapterKey({ accountInfo, bookId, chapterId }) {
   });
 }
 
-function getChapterContent({ accountInfo, chapterId, command }) {
-  const { loginInfo } = accountInfo;
+function getChapterContent({ chapterId, command }) {
+
   return new Promise((resolve, reject) => {
     let params = Object.assign({}, para, {
-      login_token: loginInfo.login_token,
-      account: loginInfo.reader_info.account,
       chapter_id: "" + chapterId,
       chapter_command: command,
     });
@@ -340,6 +364,7 @@ function getChapterContent({ accountInfo, chapterId, command }) {
 
 export default {
   login,
+  recoverLoginStatus,
   getLoginInfo,
   getBookshelfList,
   getShelfBookList,

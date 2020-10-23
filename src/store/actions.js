@@ -44,7 +44,7 @@ export function login(context, payload) {
 
 export function recoveryLoginStatus(context, payload) {
   const server = getServer(context.state.webApp);
-  const accountInfo = server.getLoginInfo();
+  const accountInfo = server.recoverLoginStatus();
   if (accountInfo && accountInfo.loginInfo) {
     context.state.accountInfo.account = accountInfo.account;
     context.state.accountInfo.password = accountInfo.password;
