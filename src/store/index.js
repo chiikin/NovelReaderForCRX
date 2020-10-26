@@ -10,7 +10,7 @@ Vue.use(Vuex);
 export default new Vuex.Store({
   state: {
     webApp: "hbooker",
-    pageComponent: "Bookshelf",
+    pageComponent: "ChapterView",//"Bookshelf",
     accountInfo: {
       isLogin: false,
       account: "",
