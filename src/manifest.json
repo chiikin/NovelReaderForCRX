@@ -13,12 +13,11 @@
   },
   "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
   "permissions": [
+    "webRequest",
+    "webRequestBlocking",
     "activeTab",
     "unlimitedStorage",
-    "http://*/",
-    "https://*/",
-    "http://*/*",
-    "https://*/*",
+    "https://app.hbooker.com/*",
     "storage"
   ],
   "background": {

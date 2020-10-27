@@ -3,11 +3,11 @@ import crypto from "crypto";
 import Vue from "vue";
 
 import { localStorage as storage } from "../utils/webStorage";
-import identityManager from "./identityManager"
+import identityManager from "./identityManager";
 
 const para = {
-  app_version: "2.6.011",
-  device_token: "ciweimao_powered_by_chiikin",
+  app_version: "2.6.019",
+  device_token:"ciweimao_867401041011125"// "ciweimao_powered_by_chiikin",
 };
 
 const storageKeys = {
@@ -21,26 +21,32 @@ const ajax = axios.create({
   baseURL: "https://app.hbooker.com",
   timeout: 60000 * 10, //10分钟
   withCredentials: false, ////跨域请求是否使用凭证
+  // headers: {
+  //   "User-Agent": "Android  com.kuangxiangciweimao.novel  2.6.019",
+  // },
   // `transformRequest` 允许在向服务器发送前，修改请求数据
   // 只能用在 'PUT', 'POST' 和 'PATCH' 这几个请求方法
   // 后面数组中的函数必须返回一个字符串，或 ArrayBuffer，或 Stream
-  transformRequest: [function (data, headers) {
-    // 对 data 进行任意转换处理
-    if (data instanceof FormData || typeof data === "string") {
-      return data;
-    }
-    if (headers["Content-Type"] === "application/x-www-form-urlencoded") {
-      return Object.keys(data).map(x => {
-        return `${x}=${encodeURIComponent(data[x])}`;
-      }).join('&');
-    }
-    else {
-      if (!headers["Content-Type"])
-        headers["Content-Type"] = "application/json";
-      // 默认JSON
-      return JSON.stringify(data);
-    }
-  }],
+  transformRequest: [
+    function(data, headers) {
+      // 对 data 进行任意转换处理
+      if (data instanceof FormData || typeof data === "string") {
+        return data;
+      }
+      if (headers["Content-Type"] === "application/x-www-form-urlencoded") {
+        return Object.keys(data)
+          .map((x) => {
+            return `${x}=${encodeURIComponent(data[x])}`;
+          })
+          .join("&");
+      } else {
+        if (!headers["Content-Type"])
+          headers["Content-Type"] = "application/json";
+        // 默认JSON
+        return JSON.stringify(data);
+      }
+    },
+  ],
 
   // // `transformResponse` 在传递给 then/catch 前，允许修改响应数据
   // transformResponse: [function (data) {
@@ -52,7 +58,6 @@ const ajax = axios.create({
 
 const vueInst = new Vue({});
 
-
 ajax.interceptors.response.use(
   (response) => {
     try {
@@ -61,9 +66,9 @@ ajax.interceptors.response.use(
       data = data.substr(0, lastIndex + 1);
       let json = JSON.parse(data);
       response.data = json;
-      console.log('decrypt ok', response);
+      console.log("decrypt ok", response);
     } catch (e) {
-      console.log('decrypt err', response);
+      console.log("decrypt err", response);
     }
     return response;
   },
@@ -110,10 +115,16 @@ ajax.interceptors.response.use(
   }
 );
 
-ajax.interceptors.request.use(function (config) {
+ajax.interceptors.request.use(function(config) {
   const identity = identityManager.getIdentity(serverKey) || {};
   const tokenPara = identity.tokenPara || {};
-  config.params = Object.assign(config.params || {}, para, tokenPara);
+  if (config.method === "post") {
+    config.data = Object.assign(config.data || {}, para, tokenPara);
+    delete config.data["reader_id"];
+  } else {
+    config.params = Object.assign(config.params || {}, para, tokenPara);
+    delete config.params["reader_id"];
+  }
 
   return config;
 });
@@ -141,7 +152,14 @@ function decrypt(data, key) {
   return decrypted;
 }
 
-function commonResultHandle(response, httpHandle, resolve, reject, url, options) {
+function commonResultHandle(
+  response,
+  httpHandle,
+  resolve,
+  reject,
+  url,
+  options
+) {
   let data = response.data || {};
   switch (data.code) {
     case 100000:
@@ -153,9 +171,13 @@ function commonResultHandle(response, httpHandle, resolve, reject, url, options)
         return reject();
       }
       // 刷新token，如果成功则重新请求发起之前的请求，否则抛出异常
-      refreshLoginToken().then(() => {
-        httpHandle(url, options).then(resolve).catch(reject);
-      }).catch(reject);
+      refreshLoginToken()
+        .then(() => {
+          httpHandle(url, options)
+            .then(resolve)
+            .catch(reject);
+        })
+        .catch(reject);
       break;
     default:
       //console.log("错误", json.tip);
@@ -173,21 +195,30 @@ function refreshLoginToken() {
     return login({
       account: hbookerAccountInfo.account,
       password: hbookerAccountInfo.password,
-      isRetry: true
+      isRetry: true,
     });
-  }
-  else {
+  } else {
     return Promise.reject();
   }
 }
 
-const httpGet = function (url, options, isRetry) {
+const httpGet = function(url, options, isRetry) {
   return new Promise((resolve, reject) => {
+    // const identity = identityManager.getIdentity(serverKey) || {};
+    // const tokenPara = identity.tokenPara || {};
+    // options.params = Object.assign(options.params || {}, para, tokenPara);
     ajax
       .get(url, options)
       .then((response) => {
         //console.log(response);
-        commonResultHandle(response, isRetry ? undefined : httpGet, resolve, reject, url, options);
+        commonResultHandle(
+          response,
+          isRetry ? undefined : httpGet,
+          resolve,
+          reject,
+          url,
+          options
+        );
       })
       .catch((err) => {
         vueInst.$toast.fail({
@@ -197,15 +228,27 @@ const httpGet = function (url, options, isRetry) {
         reject("服务器错误，请稍后重试!");
       });
   });
-}
+};
 
-const httpPost = function (url, options, isRetry) {
+const httpPost = function(url, options, isRetry) {
   return new Promise((resolve, reject) => {
+    // const identity = identityManager.getIdentity(serverKey) || {};
+    // const tokenPara = identity.tokenPara || {};
+    // options.data = Object.assign(options.data || {}, para, tokenPara);
+    options.headers = options.headers || {};
+    options.headers["Content-Type"] = "application/x-www-form-urlencoded";
     ajax
-      .post(url, options.params, options)
+      .post(url, options.data, options)
       .then((response) => {
         //console.log(response);
-        commonResultHandle(response, isRetry ? undefined : httpPost, resolve, reject, url, options);
+        commonResultHandle(
+          response,
+          isRetry ? undefined : httpPost,
+          resolve,
+          reject,
+          url,
+          options
+        );
       })
       .catch((err) => {
         vueInst.$toast.fail({
@@ -215,7 +258,7 @@ const httpPost = function (url, options, isRetry) {
         reject("服务器错误，请稍后重试!");
       });
   });
-}
+};
 
 function login({ account, password, isRetry }) {
   return new Promise((resolve, reject) => {
@@ -223,9 +266,13 @@ function login({ account, password, isRetry }) {
       login_name: account,
       passwd: password,
     });
-    httpGet("/signup/login", {
-      params: params,
-    }, isRetry)
+    httpGet(
+      "/signup/login",
+      {
+        params: params,
+      },
+      isRetry
+    )
       .then((data) => {
         const accountInfo = storage.getObject("accountInfo", {});
         accountInfo.hbooker = {
@@ -235,8 +282,8 @@ function login({ account, password, isRetry }) {
           tokenPara: {
             login_token: data.login_token,
             account: data.reader_info.account,
-            reader_id: data.reader_info.reader_id
-          }
+            reader_id: data.reader_info.reader_id,
+          },
         };
         storage.setObject("accountInfo", accountInfo);
         identityManager.setIdentity(serverKey, accountInfo.hbooker);
@@ -254,8 +301,7 @@ function recoverLoginStatus() {
   if (accountInfo.hbooker) {
     identityManager.setIdentity(serverKey, accountInfo.hbooker);
     return accountInfo.hbooker;
-  }
-  else {
+  } else {
     return false;
   }
 }
@@ -297,7 +343,6 @@ function getBookshelfList({ refresh }) {
 }
 
 function getShelfBookList({ shelfId, refresh }) {
-
   const bookshelfList = storage.getObject(storageKeys.bookshelf);
   let bookshelf;
   if (bookshelfList) {
@@ -311,7 +356,6 @@ function getShelfBookList({ shelfId, refresh }) {
   // 从服务器加载
   return new Promise((resolve, reject) => {
     let params = Object.assign({}, para, {
-
       count: 999,
       shelf_id: shelfId,
       page: 0,
@@ -360,7 +404,7 @@ function getShelfBookList({ shelfId, refresh }) {
   });
 }
 
-function clearStorage() { }
+function clearStorage() {}
 
 function getChapter({ bookId, chapterId }) {
   return new Promise((resolve, reject) => {
@@ -394,13 +438,12 @@ function getChapter({ bookId, chapterId }) {
 }
 
 function getChapterKey({ bookId, chapterId }) {
-
   return new Promise((resolve, reject) => {
-    let params = Object.assign({}, para, {
-      chapter_id: "" + chapterId,
-    });
+    // let params = Object.assign({}, para, {
+    //   chapter_id: "" + chapterId,
+    // });
     httpPost("/chapter/get_chapter_cmd", {
-      params: params,
+      data: { chapter_id: chapterId },
     })
       .then((data) => {
         resolve(data.command);
@@ -412,14 +455,12 @@ function getChapterKey({ bookId, chapterId }) {
 }
 
 function getChapterContent({ chapterId, command }) {
-
   return new Promise((resolve, reject) => {
-    let params = Object.assign({}, para, {
-      chapter_id: "" + chapterId,
-      chapter_command: command,
-    });
     httpPost("/chapter/get_cpt_ifm", {
-      params: params,
+      data: {
+        chapter_id: "" + chapterId,
+        chapter_command: command,
+      },
     })
       .then((data) => {
         resolve(data);
