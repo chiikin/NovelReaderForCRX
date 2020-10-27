@@ -108,7 +108,7 @@ export default {
   },
   computed: {
     readingChapter() {
-      return this.$store.state.readingChapter;
+      return this.$store.state.readingChapter||{};
     },
     contentStyle() {
       return {
@@ -123,7 +123,8 @@ export default {
       };
     },
     cotnentSections() {
-      const content = this.content || "";
+      const {content=""}=this.readingChapter;
+      //const content = this.content || "";
       return content.split("\n");
       // .map((text) => {
       //   return `<p>${text}</p>`;

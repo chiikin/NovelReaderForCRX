@@ -163,6 +163,11 @@ export function loadChapter(context, payload) {
     });
 }
 
+/**
+ * 浏览章节，此方法不检查章节id是否有效
+ * @param {*} context
+ * @param {*} payload
+ */
 export function viewChapter(context, payload) {
   const readingChapter = context.state.readingChapter;
   readingChapter.bookId = payload.bookId;
@@ -175,5 +180,73 @@ export function viewChapter(context, payload) {
     bookId: payload.bookId,
     chapterId: payload.chapterId,
   });
+}
+
+export function viewBook(context, payload) {
+  const { currentBookshelfId, bookshelfList, bookChaptersMap } = context.state;
+  const bookshelf = bookshelfList.find(
+    (x) => x.bookshelfId === currentBookshelfId
+  );
+
+  const book = bookshelf.books.find((val) => {
+    return val.bookId === payload.bookId;
+  });
+  const server = getServer(context.state.webApp);
+
+  function getChapter(volumes, chapterId) {
+    for (let i = 0; i < volumes.length; i++) {
+      const volume = volumes[0];
+      for (let j = 0; volume.chapters.length; j++) {
+        const chapter = volume.chapters[j];
+        if (chapter.chapterId === chapterId) {
+          return chapter;
+        }
+      }
+    }
+  }
+
+  function getReadChapterId(bookChapters) {
+    if (book.lastReadInfo) {
+      //存在最近阅读
+      return book.lastReadInfo.chapterId;
+    } else {
+      //没有最近阅读
+      return bookChapters[0].chapters[0].chapterId;
+    }
+  }
+
+  function nextStep(bookChapters) {
+    const readChapterId = getReadChapterId(bookChapters);
+    const chapter = getChapter(bookChapters, readChapterId);
+
+    server
+    .getChapterDetail({
+      book: book,
+      chapter: chapter,
+    })
+    .then((data) => {
+      context.state.readingChapter = data;
+    });
+  }
+
+  if (bookChaptersMap[book.bookName]) {
+    const bookChapters = bookChaptersMap[book.bookName];
+    ///bookChapters.
+    nextStep(bookChapters);
+  } else {
+    server.getChapterList({ book }).then((data) => {});
+  }
+
   context.dispatch({ type: "openPage", pageName: "ChapterView" });
 }
+
+/**
+ * 浏览书籍，查看最近阅读章节，如果没有最近阅读章节则阅读第一章节
+ * @param {*} context
+ * @param {*} payload
+ */
+export function viewNextChapter(context, payload) {
+  const { currentBookshelfId, bookshelfList } = context.state;
+}
+
+export function viewPrevChapter(context, payload) {}

@@ -20,6 +20,23 @@ interface ReadingChapterInfo {
     content:string
 }
 
+interface ChapterDetail{
+    
+}
+
+interface ChapterInfo{
+    chapterId:string,
+    chapterName:string,
+    raw:any
+}
+
+interface BookChapterVolume{
+    volumeId:string,
+    volumeName:string,
+    raw:any,
+    chapters:Array<ChapterInfo>
+}
+
 interface BookInfo {
     bookId: string;
     bookName: string;
@@ -28,6 +45,7 @@ interface BookInfo {
     totalWordCount: string;
     lastReadInfo?: LastReadInfo,
     lastChapterInfo: LastChapterInfo
+    raw:any
 }
 
 interface Bookshelf {

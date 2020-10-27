@@ -406,11 +406,11 @@ function getShelfBookList({ shelfId, refresh }) {
 
 function clearStorage() {}
 
-function getChapter({ bookId, chapterId }) {
+function getChapterDetail({ book, chapter }) {
   return new Promise((resolve, reject) => {
-    getChapterKey({ bookId, chapterId })
+    getChapterKey({ bookId:book.bookId, chapterId:chapter.chapterId })
       .then((command) => {
-        getChapterContent({ bookId, chapterId, command })
+        getChapterContent({ bookId:book.bookId, chapterId:chapter.chapterId, command })
           .then((data) => {
             let chapterInfo = data.chapter_info;
             if (Object.keys(chapterInfo).length != 0) {
@@ -424,7 +424,7 @@ function getChapter({ bookId, chapterId }) {
                 title: contentTitle,
                 loaded: false,
                 content: decryptContent,
-                original: data,
+                raw: data,
               };
               resolve(readingChapterInfo);
             } else {
@@ -471,12 +471,17 @@ function getChapterContent({ chapterId, command }) {
   });
 }
 
+function getChapterList({book}){
+
+}
+
 export default {
   login,
   recoverLoginStatus,
   getLoginInfo,
   getBookshelfList,
   getShelfBookList,
-  getChapter,
+  getChapterDetail,
+  getChapterList,
   clearStorage,
 };

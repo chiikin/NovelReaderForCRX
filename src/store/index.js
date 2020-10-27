@@ -23,6 +23,8 @@ export default new Vuex.Store({
       loaded: false,
       books: []
     }],
+    bookChaptersMap:{},//书籍分卷章节列表，
+    
     currentBookshelfId: "",
     readingChapter: {
       bookId: "",
