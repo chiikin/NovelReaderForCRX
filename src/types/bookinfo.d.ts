@@ -21,7 +21,12 @@ interface ReadingChapterInfo {
 }
 
 interface ChapterDetail{
-    
+    bookId: string,
+    chapterId: string,
+    title: string,
+    loaded:boolean,
+    content:string
+    raw:any
 }
 
 interface ChapterInfo{

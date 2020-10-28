@@ -10,7 +10,7 @@ Vue.use(Vuex);
 export default new Vuex.Store({
   state: {
     webApp: "hbooker",
-    pageComponent: "ChapterView",//"Bookshelf",
+    pageComponent: "Bookshelf",//"Bookshelf",//"ChapterView"
     accountInfo: {
       isLogin: false,
       account: "",
@@ -23,13 +23,12 @@ export default new Vuex.Store({
       loaded: false,
       books: []
     }],
-    bookChaptersMap:{},//书籍分卷章节列表，
+    bookChapters:[],//书籍分卷章节列表，
     
     currentBookshelfId: "",
     readingChapter: {
       bookId: "",
       chapterId: "",
-      chapterIndex: "",
       title: "",
       loaded:false,
       content:""

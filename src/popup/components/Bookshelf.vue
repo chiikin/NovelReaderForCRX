@@ -30,10 +30,10 @@
     <div class="book-list">
       <div class="book-item" v-for="book in books" :key="book.bookId">
         <div class="book-cover">
-          <img :src="book.cover" @click="openBookWithLastRead(book)" />
+          <img :src="book.cover" @click="openBook(book)" />
         </div>
         <div class="book-info">
-          <p @click="openBookWithLastRead(book)">
+          <p @click="openBook(book)">
             <span class="book-title">{{ book.bookName }}</span>
             <!-- <span class="book-update-mark">更新</span> -->
           </p>
@@ -108,11 +108,11 @@ export default {
     getUpdateTimeDisplay(time) {
       return moment(time, "YYYY-MM-DD HH:mm:ss").fromNow();
     },
-    openBookWithLastRead(book) {
+    openBook(book) {
       this.$store.dispatch({
-        type: "viewChapter",
+        type: "viewBook",
         bookId: book.bookId,
-        chapterId: book.lastReadInfo.chapterId,
+        //chapterId: book.lastReadInfo.chapterId,
       });
     },
   },

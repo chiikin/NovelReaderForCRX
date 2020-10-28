@@ -1,11 +1,11 @@
-import store from "./store";
-global.browser = require("webextension-polyfill");
+//import store from "./store";
+//global.browser = require("webextension-polyfill");
 
 console.log("background.js loaded");
 
 const headerModify={
     modify:{
-        "User-Agent":"Android  com.kuangxiangciweimao.novel  2.6.019,iphone, 12, 28, 9"
+        "User-Agent":"Android  com.kuangxiangciweimao.novel  2.6.019,huawei, meta40, 28, 9"
     },
     remove:[],
     add:{}

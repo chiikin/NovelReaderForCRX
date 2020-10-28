@@ -1,17 +1,19 @@
 import axios from "axios";
 import crypto from "crypto";
 import Vue from "vue";
+import hbookerDb from "./hbookerdb"
 
 import { localStorage as storage } from "../utils/webStorage";
 import identityManager from "./identityManager";
 
 const para = {
   app_version: "2.6.019",
-  device_token:"ciweimao_867401041011125"// "ciweimao_powered_by_chiikin",
+  device_token: "ciweimao_867401041011125"// "ciweimao_powered_by_chiikin",
 };
 
 const storageKeys = {
   bookshelf: "hbooker:bookshelfList",
+  bookChapters: "hbooker:bookChapters"
 };
 const serverKey = "hbooker";
 // 注意在manifest.json文件中添加权限，否则有跨域问题
@@ -28,7 +30,7 @@ const ajax = axios.create({
   // 只能用在 'PUT', 'POST' 和 'PATCH' 这几个请求方法
   // 后面数组中的函数必须返回一个字符串，或 ArrayBuffer，或 Stream
   transformRequest: [
-    function(data, headers) {
+    function (data, headers) {
       // 对 data 进行任意转换处理
       if (data instanceof FormData || typeof data === "string") {
         return data;
@@ -115,7 +117,7 @@ ajax.interceptors.response.use(
   }
 );
 
-ajax.interceptors.request.use(function(config) {
+ajax.interceptors.request.use(function (config) {
   const identity = identityManager.getIdentity(serverKey) || {};
   const tokenPara = identity.tokenPara || {};
   if (config.method === "post") {
@@ -161,7 +163,7 @@ function commonResultHandle(
   options
 ) {
   let data = response.data || {};
-  switch (data.code) {
+  switch (+data.code) {
     case 100000:
       resolve(data.data);
       break;
@@ -202,7 +204,7 @@ function refreshLoginToken() {
   }
 }
 
-const httpGet = function(url, options, isRetry) {
+const httpGet = function (url, options, isRetry) {
   return new Promise((resolve, reject) => {
     // const identity = identityManager.getIdentity(serverKey) || {};
     // const tokenPara = identity.tokenPara || {};
@@ -230,13 +232,14 @@ const httpGet = function(url, options, isRetry) {
   });
 };
 
-const httpPost = function(url, options, isRetry) {
+const httpPost = function (url, options, isRetry) {
   return new Promise((resolve, reject) => {
     // const identity = identityManager.getIdentity(serverKey) || {};
     // const tokenPara = identity.tokenPara || {};
     // options.data = Object.assign(options.data || {}, para, tokenPara);
     options.headers = options.headers || {};
-    options.headers["Content-Type"] = "application/x-www-form-urlencoded";
+    if (!options.headers["Content-Type"])
+      options.headers["Content-Type"] = "application/x-www-form-urlencoded";
     ajax
       .post(url, options.data, options)
       .then((response) => {
@@ -404,44 +407,66 @@ function getShelfBookList({ shelfId, refresh }) {
   });
 }
 
-function clearStorage() {}
+function clearStorage() { }
 
-function getChapterDetail({ book, chapter }) {
-  return new Promise((resolve, reject) => {
-    getChapterKey({ bookId:book.bookId, chapterId:chapter.chapterId })
-      .then((command) => {
-        getChapterContent({ bookId:book.bookId, chapterId:chapter.chapterId, command })
-          .then((data) => {
-            let chapterInfo = data.chapter_info;
-            if (Object.keys(chapterInfo).length != 0) {
-              let contentTitle = chapterInfo.chapter_title;
-              let contentText = chapterInfo.txt_content;
-              let decryptContent = decrypt(contentText, command);
-              const readingChapterInfo = {
-                bookId: bookId,
-                chapterId: chapterId,
-                chapterIndex: "",
-                title: contentTitle,
-                loaded: false,
-                content: decryptContent,
-                raw: data,
-              };
-              resolve(readingChapterInfo);
-            } else {
-              reject("");
-            }
-          })
-          .catch((err) => reject(err));
-      })
-      .catch((err) => reject(err));
+function getChapterDetail({ book, chapter, refresh }) {
+
+  function getFromService() {
+    return new Promise((resolve, reject) => {
+      getChapterKey({ bookId: book.bookId, chapterId: chapter.chapterId })
+        .then((command) => {
+          getChapterContent({ bookId: book.bookId, chapterId: chapter.chapterId, command })
+            .then((data) => {
+              let chapterInfo = data.chapter_info;
+              if (Object.keys(chapterInfo).length != 0) {
+                let contentTitle = chapterInfo.chapter_title;
+                let contentText = chapterInfo.txt_content;
+                let decryptContent = decrypt(contentText, command)||'';
+                try{
+                  const chapterDetail = {
+                    bookId: book.bookId,
+                    chapterId: chapterInfo.chapter_id,
+                    title: contentTitle,
+                    loaded: true,
+                    content: decryptContent.trim(),
+                    raw: data,
+                  };
+                  hbookerDb.chapterDetails.put({
+                    bookId: book.bookId, chapterId: chapter.chapterId,
+                    lastReadTime: new Date().valueOf(),
+                    data: chapterDetail
+                  },[chapter.chapterId]);
+                  resolve(chapterDetail);
+                }catch(e){
+                  console.log(e);
+                }
+              } else {
+                reject("");
+              }
+            })
+            .catch((err) => reject(err));
+        })
+        .catch((err) => reject(err));
+    });
+  }
+
+  if (refresh) {
+    return getFromService();
+  }
+
+  return hbookerDb.chapterDetails.where("chapterId").equals(chapter.chapterId).first(function (chapterData) {
+    if (chapterData) {
+      return Promise.resolve(chapterData.data);
+    }
+    else {
+      return getFromService();
+    }
   });
+
 }
 
 function getChapterKey({ bookId, chapterId }) {
   return new Promise((resolve, reject) => {
-    // let params = Object.assign({}, para, {
-    //   chapter_id: "" + chapterId,
-    // });
     httpPost("/chapter/get_chapter_cmd", {
       data: { chapter_id: chapterId },
     })
@@ -471,8 +496,77 @@ function getChapterContent({ chapterId, command }) {
   });
 }
 
-function getChapterList({book}){
+function getChapterList({ book, refresh }) {
 
+  const getChapterByDivisionId = function (arr, index, result, resolve, reject) {
+    const division = arr[index];
+    httpPost('/chapter/get_updated_chapter_by_division_id', {
+      data: {
+        division_id: division.division_id,
+        last_update_time: 0
+      },
+    })
+      .then((data) => {
+
+        let chaptersData = data.chapter_list.map(chapter => {
+          return {
+            chapterId: chapter.chapter_id,
+            chapterName: chapter.chapter_title,
+            raw: chapter
+          }
+        });
+
+        result.push({
+          volumeId: division.division_id,
+          volumeName: division.division_name,
+          raw: division,
+          chapters: chaptersData
+        });
+
+        if (arr.length - 1 === index) {
+          hbookerDb.bookVolumes.put({
+            bookId: book.bookId,
+            bookName: book.bookName,
+            data: result
+          }, [book.bookId]);
+          resolve(result);
+        }
+        else {
+          getChapterByDivisionId(arr, index + 1, result, resolve, reject);
+        }
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  }
+
+  function getFromService() {
+    // 从服务器加载
+    return new Promise((resolve, reject) => {
+      httpGet('/book/get_division_list', {
+        params: { book_id: book.bookId },
+      })
+        .then((data) => {
+          let divisionData = data.division_list
+          getChapterByDivisionId(divisionData, 0, [], resolve, reject);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+  }
+  if (refresh) {
+    return getFromService();
+  }
+
+  return hbookerDb.bookVolumes.where("bookId").equals(book.bookId).first(function (item) {
+    if (item) {
+      return Promise.resolve(item.data);
+    }
+    else {
+      return getFromService()
+    }
+  });
 }
 
 export default {

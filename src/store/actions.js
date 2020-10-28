@@ -183,7 +183,7 @@ export function viewChapter(context, payload) {
 }
 
 export function viewBook(context, payload) {
-  const { currentBookshelfId, bookshelfList, bookChaptersMap } = context.state;
+  const { currentBookshelfId, bookshelfList } = context.state;
   const bookshelf = bookshelfList.find(
     (x) => x.bookshelfId === currentBookshelfId
   );
@@ -193,19 +193,19 @@ export function viewBook(context, payload) {
   });
   const server = getServer(context.state.webApp);
 
-  function getChapter(volumes, chapterId) {
+  function getChapterInVolume(volumes, chapterId) {
     for (let i = 0; i < volumes.length; i++) {
-      const volume = volumes[0];
-      for (let j = 0; volume.chapters.length; j++) {
+      const volume = volumes[i];
+      for (let j = 0; j<volume.chapters.length; j++) {
         const chapter = volume.chapters[j];
-        if (chapter.chapterId === chapterId) {
+        if (chapter.chapterId == chapterId) {
           return chapter;
         }
       }
     }
   }
 
-  function getReadChapterId(bookChapters) {
+  function getReadigChapterId(bookChapters) {
     if (book.lastReadInfo) {
       //存在最近阅读
       return book.lastReadInfo.chapterId;
@@ -215,27 +215,29 @@ export function viewBook(context, payload) {
     }
   }
 
-  function nextStep(bookChapters) {
-    const readChapterId = getReadChapterId(bookChapters);
-    const chapter = getChapter(bookChapters, readChapterId);
-
+  server.getChapterList({ book }).then((data) => {
+    context.state.bookChapters = data;
+    const readChapterId = getReadigChapterId(data);
+    let chapter ;
+    try{
+      chapter= getChapterInVolume(data, readChapterId);
+    }catch(e){
+      console.error(e )
+    }
+    
+    if(!chapter){
+      console.log('打开章节失败,章节id:'+readChapterId);
+    }
     server
-    .getChapterDetail({
-      book: book,
-      chapter: chapter,
-    })
-    .then((data) => {
-      context.state.readingChapter = data;
-    });
-  }
-
-  if (bookChaptersMap[book.bookName]) {
-    const bookChapters = bookChaptersMap[book.bookName];
-    ///bookChapters.
-    nextStep(bookChapters);
-  } else {
-    server.getChapterList({ book }).then((data) => {});
-  }
+      .getChapterDetail({
+        book: book,
+        chapter: chapter,
+      })
+      .then((data) => {
+        context.state.readingChapter = data;
+      });
+    //console.log('chapterResult', data);
+  });
 
   context.dispatch({ type: "openPage", pageName: "ChapterView" });
 }
@@ -249,4 +251,4 @@ export function viewNextChapter(context, payload) {
   const { currentBookshelfId, bookshelfList } = context.state;
 }
 
-export function viewPrevChapter(context, payload) {}
+export function viewPrevChapter(context, payload) { }
