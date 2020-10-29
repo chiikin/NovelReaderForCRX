@@ -9,40 +9,40 @@ const storageKeys = {
 
 const vueInst = new Vue({});
 function showErrorMsg(e) {
-  if (typeof e === 'string') {
+  if (typeof e === "string") {
     vueInst.$toast.fail(e);
-  }
-  else {
-    console.error('showError', e);
+  } else {
+    console.error("showError", e);
   }
 }
 
 /**
  * 保存vuex快照
- * @param {*} context 
+ * @param {*} context
  */
 export function saveSnapshot(context) {
-  const { webApp,
-    pageComponent,//"Bookshelf",//"ChapterView"
+  const {
+    webApp,
+    pageComponent, //"Bookshelf",//"ChapterView"
     session,
     bookshelfList,
-    currentBookshelf,//{}
+    currentBookshelf, //{}
     bookList,
-    readingBook,//{},
+    readingBook, //{},
     readingBookVolumes,
-    readingChapter,//{}
+    readingChapter, //{}
   } = context.state;
 
   storage.setObject("appVuexSnapshot", {
     webApp,
-    pageComponent,//"Bookshelf",//"ChapterView"
+    pageComponent, //"Bookshelf",//"ChapterView"
     session,
     bookshelfList,
-    currentBookshelf,//{}
+    currentBookshelf, //{}
     bookList,
-    readingBook,//{},
+    readingBook, //{},
     readingBookVolumes,
-    readingChapter,//{}
+    readingChapter, //{}
   });
 }
 
@@ -50,9 +50,11 @@ export async function recoverSession(context) {
   const { session, webApp } = context.state;
   if (session) {
     const service = getService(webApp);
-    await service.login({ account: session.account, password: session.password });
-  }
-  else {
+    await service.login({
+      account: session.account,
+      password: session.password,
+    });
+  } else {
     context.state.pageComponent = "Login";
   }
 }
@@ -79,27 +81,48 @@ export async function loadBookshelf(context, payload) {
   const { webApp } = context.state;
   //const { account, password } = payload;
   const service = getService(webApp);
-  context.state.bookshelfList = await service.getBookshelfList({ noCache: payload.noCache });
+  context.state.bookshelfList = await service.getBookshelfList({
+    noCache: payload.noCache,
+  });
   context.state.currentBookshelf = context.state.bookshelfList[0];
-  await context.dispatch({ type: "loadBookList",  noCache: payload.noCache });
+  await context.dispatch({ type: "loadBookList", noCache: payload.noCache });
 }
 
 export async function loadBookList(context, payload) {
-  const { webApp,currentBookshelf } = context.state;
+  const { webApp, currentBookshelf } = context.state;
   //const { account, password } = payload;
   const service = getService(webApp);
 
-  context.state.bookList= await service.getBookList({ bookshelf:currentBookshelf, noCache: payload.noCache  });
-
+  context.state.bookList = await service.getBookList({
+    bookshelf: currentBookshelf,
+    noCache: payload.noCache,
+  });
 }
 
 export async function switchBookshelf(context, payload) {
   const { bookshelfList } = context.state;
 
-  const bookshelf = bookshelfList.find(x => { return x.shelfId === payload.shelfId });
+  const bookshelf = bookshelfList.find((x) => {
+    return x.shelfId === payload.shelfId;
+  });
   context.state.currentBookshelf = bookshelf;
 
-  await context.dispatch({ type: "loadBookList",  noCache: false });
+  await context.dispatch({ type: "loadBookList", noCache: false });
+}
+
+export async function viewBook(context, payload) {
+  const { books,webApp } = context.state;
+  const book = books.find((x) => {
+    return x.bookId === payload.bookId;
+  });
+  const service = getService(webApp);
+  let chapterId;
+  if(book.lastReadInfo){
+
+  }
+  else{
+
+  }
 }
 
 export function loadReadingChapter(context, payload) {
@@ -145,7 +168,7 @@ export function viewChapter(context, payload) {
   });
 }
 
-export function viewBook(context, payload) {
+export function viewBook1(context, payload) {
   const { currentBookshelfId, bookshelfList } = context.state;
   const bookshelf = bookshelfList.find(
     (x) => x.bookshelfId === currentBookshelfId
@@ -185,11 +208,11 @@ export function viewBook(context, payload) {
     try {
       chapter = getChapterInVolume(data, readChapterId);
     } catch (e) {
-      console.error(e)
+      console.error(e);
     }
 
     if (!chapter) {
-      console.log('打开章节失败,章节id:' + readChapterId);
+      console.log("打开章节失败,章节id:" + readChapterId);
     }
     server
       .getChapterDetail({
@@ -215,4 +238,4 @@ export function viewNextChapter(context, payload) {
   const { currentBookshelfId, bookshelfList } = context.state;
 }
 
-export function viewPrevChapter(context, payload) { }
+export function viewPrevChapter(context, payload) {}
