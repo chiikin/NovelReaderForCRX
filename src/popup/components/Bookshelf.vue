@@ -42,10 +42,10 @@
           </p>
           <p class="book-chapter-info van-ellipsis">
             更新: {{ getUpdateTimeDisplay(book.lastChapterInfo.date) }} /
-            {{ book.lastChapterInfo.title }}
+            {{ book.lastChapterInfo.chapterName }}
           </p>
           <p class="book-chapter-info van-ellipsis">
-            进度: {{ book.lastReadInfo ? book.lastReadInfo.title : "未读" }}
+            进度: {{ book.lastReadInfo ? book.lastReadInfo.chapterName : "未读" }}
           </p>
         </div>
       </div>
