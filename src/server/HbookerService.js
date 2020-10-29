@@ -235,7 +235,7 @@ export default class HbookerService {
     //#region WebService接口
     async login({ account, password }) {
         // 从session获取token,如果获取到则直接返回
-        let session = storage.getObject(`storageKeys.session:${account}`);
+        let session = storage.getObject(`${storageKeys.session}:${account}`);
         if (session) {
             this.session = session;
         }
@@ -244,14 +244,15 @@ export default class HbookerService {
             if (!session)
                 throw '登录失败';
             this.session = session;
+            storage.setObject(`${storageKeys.session}:${account}`,session);
         }
 
         this.db = openUserDB(this.session.account);
         return {
             account: session.account,
             password: session.password,
-            nickName: session.reader_info.reader_name,
-            avatar: session.reader_info.avatar_url,
+            nickName: session.raw.reader_info.reader_name,
+            avatar: session.raw.reader_info.avatar_url,
         }
     }
     logout() {
@@ -269,7 +270,8 @@ export default class HbookerService {
         const { db, session } = this;
         let rawShelfs;
         if (!noCache) {
-            const cacheData = await db.bookshelfs.first();
+            const cacheData = await db.bookshelfs.toCollection().first();
+            
             if (cacheData)
                 rawShelfs = cacheData.data;
         }
