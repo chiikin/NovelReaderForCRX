@@ -4,7 +4,7 @@
     <div>用户信息</div>
     <van-dropdown-menu>
       <van-dropdown-item
-        v-model="currentBookshelf"
+        v-model="currentBookshelfId"
         :options="bookshelfListOptions"
       />
     </van-dropdown-menu>
@@ -62,12 +62,13 @@ export default {
     return {};
   },
   computed: {
-    currentBookshelf: {
+    currentBookshelfId: {
       get: function () {
-        return this.$store.state.currentBookshelfId;
+        const bookshelf = this.$store.state.currentBookshelf;
+        return bookshelf ? bookshelf.shelfId : undefined;
       },
       set: function (value) {
-        this.$store.dispatch({ type: "switchBookshelf", bookshelfId: value });
+        this.$store.dispatch({ type: "switchBookshelf", shelfId: value });
       },
     },
     bookshelfList() {
@@ -76,21 +77,19 @@ export default {
     bookshelfListOptions() {
       return this.$store.state.bookshelfList.map((x) => {
         return {
-          text: x.bookshelfName,
-          value: x.bookshelfId,
+          text: x.shelfName,
+          value: x.shelfId,
         };
       });
     },
     books() {
-      const { bookshelfList, currentBookshelfId } = this.$store.state;
-      const ret = bookshelfList.filter(
-        (x) => x.bookshelfId === currentBookshelfId
-      );
-      return ret && ret.length > 0 ? ret[0].books : [];
+      const { bookList } = this.$store.state;
+      return bookList || [];
     },
   },
   created() {
-    this.$store.dispatch({ type: "recoveryLoginStatus" });
+    if (!this.currentBookshelfId)
+      this.$store.dispatch({ type: "loadBookshelf" });
   },
   methods: {
     getWordCountDisplay(count) {

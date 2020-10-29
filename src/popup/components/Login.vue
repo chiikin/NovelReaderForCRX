@@ -31,27 +31,16 @@ export default {
       loading: false,
     };
   },
-  // created() {
-  //   //todo 自动登录
-  //   //this.autoLogin();
-  // },
   methods: {
-    onSubmit() {
+    async onSubmit() {
       this.loading = true;
-      this.$store.dispatch({
+      await this.$store.dispatch({
         type: "login",
         account: this.account,
         password: this.password,
       });
+      this.loading = false;
     },
-    // autoLogin() {
-    //   const hbooker = getLoginInfo();
-    //   if (hbooker.account && hbooker.password) {
-    //     this.account = hbooker.account;
-    //     this.password = hbooker.password;
-    //     this.onSubmit();
-    //   }
-    // },
   },
 };
 </script>
