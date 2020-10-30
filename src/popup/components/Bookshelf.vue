@@ -45,7 +45,8 @@
             {{ book.lastChapterInfo.chapterName }}
           </p>
           <p class="book-chapter-info van-ellipsis">
-            进度: {{ book.lastReadInfo ? book.lastReadInfo.chapterName : "未读" }}
+            进度:
+            {{ book.lastReadInfo ? book.lastReadInfo.chapterName : "未读" }}
           </p>
         </div>
       </div>
@@ -55,6 +56,7 @@
 
 <script>
 import moment from "moment";
+import {wrapObjectFunction,test} from "../../utils/ErrorProxy";
 moment.locale("zh-CN");
 export default {
   name: "Bookshelf",
@@ -88,8 +90,10 @@ export default {
     },
   },
   created() {
+    test.handle();
     if (!this.currentBookshelfId)
       this.$store.dispatch({ type: "loadBookshelf" });
+    
   },
   methods: {
     getWordCountDisplay(count) {

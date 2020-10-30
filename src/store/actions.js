@@ -116,13 +116,31 @@ export async function viewBook(context, payload) {
     return x.bookId === payload.bookId;
   });
   const service = getService(webApp);
+  context.state.readingBook=book;
+
   let chapterId;
   if(book.lastReadInfo){
+    chapterId=book.lastReadInfo.chapterId;
+  }
+  else{
+    const volumes= await service.getVolumeList({book,noCache:payload.noCache});
+    context.state.readingBookVolumes=volumes;
+    for(let i=0;volumes.length;i++){
+      const volume=volumes[i];
+      if(volume.chapters.length>0){
+        chapterId=volume.chapters[0].chapterId;
+        break;
+      }
+    }
+  }
+
+  if(chapterId){
 
   }
   else{
-
+    
   }
+
 }
 
 export function loadReadingChapter(context, payload) {
