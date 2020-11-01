@@ -377,7 +377,7 @@ export default class HbookerService {
       volumes = [];
       for (let i = 0; i < divisionList.length; i++) {
         const division = divisionList[i];
-        const ChapterListResp = await this.httpPost("/book/get_division_list", {
+        const ChapterListResp = await this.httpPost("/book/get_updated_chapter_by_division_id", {
           data: {
             division_id: division.division_id,
             last_update_time: 0,
