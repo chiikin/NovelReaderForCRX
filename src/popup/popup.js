@@ -5,14 +5,21 @@ import Vant from 'vant';
 import 'vant/lib/index.css';
 import components from "./components"
 import axios from "axios"
+import {dispatch} from "../utils/VuexHelper"
 
 Vue.use(Vant);
 Vue.use(components);
 
 window.axios = axios;
 
-global.browser = require('webextension-polyfill')
-Vue.prototype.$browser = global.browser
+// global.browser = require('webextension-polyfill')
+// Vue.prototype.$browser = global.browser
+
+Vue.mixin({
+  methods:{
+    dispatch:dispatch
+  }
+});
 
 store.dispatch({ type: "recoverSession" }).then(() => {
 

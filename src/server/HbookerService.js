@@ -169,8 +169,10 @@ export default class HbookerService {
     const code = +data.code;
     if (code === 200100 && !stopRelogin) {
       //登录过期
-      this.session = await this.getLoginToken();
-      return await this.httGet(url, options, true);
+      const {account,password}=this.session||{};
+
+      this.session = await this.getLoginToken({account,password});
+      return await this.httpGet(url, options, true);
     } else if (code === 100000) {
       //ok
       return data.data;
@@ -190,8 +192,10 @@ export default class HbookerService {
     const code = +data.code;
     if (code === 200100 && !stopRelogin) {
       //登录过期
-      this.session = await this.getLoginToken(); //还原一次登录状态
-      return await this.httPost(url, options, true);
+      const {account,password}=this.session||{};
+
+      this.session = await this.getLoginToken({account,password}); //还原一次登录状态
+      return await this.httpPost(url, options, true);
     } else if (code === 100000) {
       //ok
       return data.data;

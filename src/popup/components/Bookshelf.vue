@@ -56,7 +56,6 @@
 
 <script>
 import moment from "moment";
-import {wrapObjectFunction,test} from "../../utils/ErrorProxy";
 moment.locale("zh-CN");
 export default {
   name: "Bookshelf",
@@ -90,10 +89,8 @@ export default {
     },
   },
   created() {
-    test.handle();
     if (!this.currentBookshelfId)
-      this.$store.dispatch({ type: "loadBookshelf" });
-    
+      this.dispatch({ type: "loadBookshelf" });
   },
   methods: {
     getWordCountDisplay(count) {
@@ -112,7 +109,7 @@ export default {
       return moment(time, "YYYY-MM-DD HH:mm:ss").fromNow();
     },
     openBook(book) {
-      this.$store.dispatch({
+      this.dispatch({
         type: "viewBook",
         bookId: book.bookId,
         //chapterId: book.lastReadInfo.chapterId,

@@ -7,15 +7,6 @@ const storageKeys = {
   readingChapter: "readingChapter",
 };
 
-const vueInst = new Vue({});
-function showErrorMsg(e) {
-  if (typeof e === "string") {
-    vueInst.$toast.fail(e);
-  } else {
-    console.error("showError", e);
-  }
-}
-
 /**
  * 保存vuex快照
  * @param {*} context
@@ -110,61 +101,101 @@ export async function switchBookshelf(context, payload) {
   await context.dispatch({ type: "loadBookList", noCache: false });
 }
 
+export async function loadVolumeList(context, payload) {
+  const { readingBook,webApp } = context.state;
+  const service = getService(webApp);
+  const volumes = await service.getVolumeList({
+    book:readingBook,
+    noCache: payload.noCache,
+  });
+  context.state.readingBookVolumes = volumes;
+}
+
+function getChapterFromVolume(volumes, chapterId, offset) {
+  const allChapters = [];
+
+  volumes.forEach((vol) => {
+    Array.prototype.push.apply(allChapters, vol.chapters);
+  });
+
+  for (let i = 0; i < allChapters.length; i++) {
+    const chapter = allChapters[i];
+    if (chapter.chapterId === chapterId) {
+      if (offset === 0) {
+        return chapter;
+      } else if (offset < 0) {
+        const index = i - offset;
+        if (index >= 0) {
+          return allChapters[index];
+        }
+      } else if (offset > 0) {
+        const index = i + offset;
+        if (index < allChapters.length) {
+          return allChapters[index];
+        } else {
+          throw "没有最新章节";
+        }
+      }
+    }
+  }
+  throw "无效章节";
+}
+
+export async function loadChapter(context, payload) {
+  const { readingBookVolumes, readingBook, webApp } = context.state;
+  const { chapterId, noCache } = payload;
+  const service = getService(webApp);
+  const chapter = getChapterFromVolume(readingBookVolumes, chapterId);
+
+  const chapterDetail = await service.getChapterDetail({
+    book: readingBook,
+    chapter,
+    noCache,
+  });
+
+  if (chapterDetail) context.state.readingChapter = chapterDetail;
+  else {
+    if (offset === 1) throw "没有最新章节";
+    else throw "无效章节";
+  }
+}
+
 export async function viewBook(context, payload) {
-  const { books,webApp } = context.state;
-  const book = books.find((x) => {
+  const { bookList } = context.state;
+  const book = bookList.find((x) => {
     return x.bookId === payload.bookId;
   });
-  const service = getService(webApp);
-  context.state.readingBook=book;
 
+  context.state.readingBook = book;
+
+  await context.dispatch({ type: "loadVolumeList" });
+
+  context.state.readingChapter = undefined;
   let chapterId;
-  if(book.lastReadInfo){
-    chapterId=book.lastReadInfo.chapterId;
-  }
-  else{
-    const volumes= await service.getVolumeList({book,noCache:payload.noCache});
-    context.state.readingBookVolumes=volumes;
-    for(let i=0;volumes.length;i++){
-      const volume=volumes[i];
-      if(volume.chapters.length>0){
-        chapterId=volume.chapters[0].chapterId;
+  if (book.lastReadInfo) {
+    chapterId = book.lastReadInfo.chapterId;
+  } else {
+    const volumes = context.state.readingBookVolumes;
+    for (let i = 0; volumes.length; i++) {
+      const volume = volumes[i];
+      if (volume.chapters.length > 0) {
+        const chapter = volume.chapters[0];
+        chapterId = chapter.chapterId;
         break;
       }
     }
   }
 
-  if(chapterId){
-
-  }
-  else{
-    
-  }
-
-}
-
-export function loadReadingChapter(context, payload) {
-  const chapterInfo = storage.getObject(storageKeys.readingChapter);
-  if (chapterInfo) {
-    context.state.readingChapter = chapterInfo;
-  } else {
-    context.dispatch({ type: "loadChapter", bookId: "", chapterId: "" });
-  }
-}
-
-export function loadChapter(context, payload) {
-  const server = getServer(context.state.webApp);
-
-  // todo: 当没有reading信息时读取第一章
-  server
-    .getChapter({
-      accountInfo: context.state.accountInfo,
-      bookId: payload.bookId,
-      chapterId: payload.chapterId,
-    })
-    .then((data) => {
-      context.state.readingChapter = data;
+  if (chapterId) {
+    await context.dispatch({
+      type: "loadChapter",
+      chapterId: chapterId,
+      offset: 0,
     });
+    await context.dispatch({ type: "openPage", pageName: "ChapterView" });
+  } else {
+    throw "阅读失败";
+  }
 }
 
 /**
@@ -186,74 +217,23 @@ export function viewChapter(context, payload) {
   });
 }
 
-export function viewBook1(context, payload) {
-  const { currentBookshelfId, bookshelfList } = context.state;
-  const bookshelf = bookshelfList.find(
-    (x) => x.bookshelfId === currentBookshelfId
-  );
-
-  const book = bookshelf.books.find((val) => {
-    return val.bookId === payload.bookId;
-  });
-  const server = getServer(context.state.webApp);
-
-  function getChapterInVolume(volumes, chapterId) {
-    for (let i = 0; i < volumes.length; i++) {
-      const volume = volumes[i];
-      for (let j = 0; j < volume.chapters.length; j++) {
-        const chapter = volume.chapters[j];
-        if (chapter.chapterId == chapterId) {
-          return chapter;
-        }
-      }
-    }
-  }
-
-  function getReadigChapterId(bookChapters) {
-    if (book.lastReadInfo) {
-      //存在最近阅读
-      return book.lastReadInfo.chapterId;
-    } else {
-      //没有最近阅读
-      return bookChapters[0].chapters[0].chapterId;
-    }
-  }
-
-  server.getChapterList({ book }).then((data) => {
-    context.state.bookChapters = data;
-    const readChapterId = getReadigChapterId(data);
-    let chapter;
-    try {
-      chapter = getChapterInVolume(data, readChapterId);
-    } catch (e) {
-      console.error(e);
-    }
-
-    if (!chapter) {
-      console.log("打开章节失败,章节id:" + readChapterId);
-    }
-    server
-      .getChapterDetail({
-        book: book,
-        chapter: chapter,
-      })
-      .then((data) => {
-        context.state.readingChapter = data;
-      });
-    //console.log('chapterResult', data);
-  });
-
-  context.dispatch({ type: "openPage", pageName: "ChapterView" });
-}
-
 /**
  * 浏览书籍，查看最近阅读章节，如果没有最近阅读章节则阅读第一章节
  * @param {*} context
  * @param {*} payload
  */
-export function viewNextChapter(context, payload) {
-  const { bookId, currentChapterId } = payload;
-  const { currentBookshelfId, bookshelfList } = context.state;
+export async function viewNextChapter(context, payload) {
+  await context.dispatch({
+    type: "loadChapter",
+    chapterId: chapterId,
+    offset: 1,
+  });
 }
 
-export function viewPrevChapter(context, payload) {}
+export async function viewPrevChapter(context, payload) {
+  await context.dispatch({
+    type: "loadChapter",
+    chapterId: chapterId,
+    offset: -1,
+  });
+}
