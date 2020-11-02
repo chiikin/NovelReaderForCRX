@@ -1,7 +1,7 @@
 import * as types from "./mutation-types";
-import { getServer, getService } from "../server";
+import {  getService } from "../server";
 import { localStorage as storage } from "../utils/webStorage";
-import Vue from "vue";
+
 
 const storageKeys = {
   readingChapter: "readingChapter",
@@ -68,6 +68,14 @@ export async function login(context, payload) {
   context.dispatch({ type: "openPage", pageName: "Bookshelf" });
 }
 
+export async function logout(context, payload){
+  
+}
+
+export async function logoutAndClearData(context, payload){
+  
+}
+
 export async function loadBookshelf(context, payload) {
   const { webApp } = context.state;
   //const { account, password } = payload;
@@ -80,12 +88,21 @@ export async function loadBookshelf(context, payload) {
 }
 
 export async function loadBookList(context, payload) {
-  const { webApp, currentBookshelf } = context.state;
+  const { webApp, currentBookshelf, bookshelfList } = context.state;
   //const { account, password } = payload;
   const service = getService(webApp);
+  let bookshelf;
+  if (payload.shelfId) {
+    bookshelf = bookshelfList.find(x => {
+      return x.shelfId === payload.shelfId;
+    });
+  }
+  else {
+    bookshelf = currentBookshelf;
+  }
 
   context.state.bookList = await service.getBookList({
-    bookshelf: currentBookshelf,
+    bookshelf: bookshelf,
     noCache: payload.noCache,
   });
 }
@@ -102,10 +119,10 @@ export async function switchBookshelf(context, payload) {
 }
 
 export async function loadVolumeList(context, payload) {
-  const { readingBook,webApp } = context.state;
+  const { readingBook, webApp } = context.state;
   const service = getService(webApp);
   const volumes = await service.getVolumeList({
-    book:readingBook,
+    book: readingBook,
     noCache: payload.noCache,
   });
   context.state.readingBookVolumes = volumes;
@@ -113,6 +130,7 @@ export async function loadVolumeList(context, payload) {
 
 function getChapterFromVolume(volumes, chapterId, offset) {
   const allChapters = [];
+  offset=offset||0;
 
   volumes.forEach((vol) => {
     Array.prototype.push.apply(allChapters, vol.chapters);
@@ -143,9 +161,9 @@ function getChapterFromVolume(volumes, chapterId, offset) {
 
 export async function loadChapter(context, payload) {
   const { readingBookVolumes, readingBook, webApp } = context.state;
-  const { chapterId, noCache } = payload;
+  const { chapterId,offset, noCache } = payload;
   const service = getService(webApp);
-  const chapter = getChapterFromVolume(readingBookVolumes, chapterId);
+  const chapter = getChapterFromVolume(readingBookVolumes, chapterId,offset);
 
   const chapterDetail = await service.getChapterDetail({
     book: readingBook,
@@ -225,7 +243,7 @@ export function viewChapter(context, payload) {
 export async function viewNextChapter(context, payload) {
   await context.dispatch({
     type: "loadChapter",
-    chapterId: chapterId,
+    chapterId: payload.chapterId,
     offset: 1,
   });
 }
@@ -233,7 +251,7 @@ export async function viewNextChapter(context, payload) {
 export async function viewPrevChapter(context, payload) {
   await context.dispatch({
     type: "loadChapter",
-    chapterId: chapterId,
+    chapterId: payload.chapterId,
     offset: -1,
   });
 }

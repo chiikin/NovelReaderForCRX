@@ -27,7 +27,8 @@ export default new Vuex.Store({
     return {
       webAppList: [{
         appId: "hbooker",
-        appName: "刺猬猫"
+        appName: "刺猬猫",
+        logo:""
       }],
       ...runtimeData
     };

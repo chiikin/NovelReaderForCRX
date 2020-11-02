@@ -1,5 +1,6 @@
 import axios from "axios";
 import crypto from "crypto";
+import moment from 'moment';
 
 import { openUserDB } from "./hbookerdb";
 
@@ -39,6 +40,20 @@ function decrypt(data, key) {
   return decrypted;
 }
 
+const dateFormat = "YYYY-MM-DD HH:mm:ss";
+function getNowString() {
+  return moment().format();
+}
+/**
+ * 判断目标时间是否过期
+ * @param {string} compareDate 
+ * @param {*} intervalSeconds 有效间隔时间，单位：秒。默认1小时
+ */
+function isExpire(compareDate, intervalSeconds) {
+  const date = moment(compareDate, dateFormat);
+  return date.diff(new Date(), 'seconds') > intervalSeconds;
+}
+
 export default class HbookerService {
   constructor() {
     this.initAjax();
@@ -59,7 +74,7 @@ export default class HbookerService {
       // 只能用在 'PUT', 'POST' 和 'PATCH' 这几个请求方法
       // 后面数组中的函数必须返回一个字符串，或 ArrayBuffer，或 Stream
       transformRequest: [
-        function(data, headers) {
+        function (data, headers) {
           // 对 data 进行任意转换处理
           if (data instanceof FormData || typeof data === "string") {
             return data;
@@ -139,7 +154,7 @@ export default class HbookerService {
       }
     );
 
-    ajax.interceptors.request.use(function(config) {
+    ajax.interceptors.request.use(function (config) {
       //const identity = identityManager.getIdentity(serverKey) || {};
       const { session } = _this;
       let tokenPara = {};
@@ -169,9 +184,9 @@ export default class HbookerService {
     const code = +data.code;
     if (code === 200100 && !stopRelogin) {
       //登录过期
-      const {account,password}=this.session||{};
+      const { account, password } = this.session || {};
 
-      this.session = await this.getLoginToken({account,password});
+      this.session = await this.getLoginToken({ account, password });
       return await this.httpGet(url, options, true);
     } else if (code === 100000) {
       //ok
@@ -192,9 +207,9 @@ export default class HbookerService {
     const code = +data.code;
     if (code === 200100 && !stopRelogin) {
       //登录过期
-      const {account,password}=this.session||{};
+      const { account, password } = this.session || {};
 
-      this.session = await this.getLoginToken({account,password}); //还原一次登录状态
+      this.session = await this.getLoginToken({ account, password }); //还原一次登录状态
       return await this.httpPost(url, options, true);
     } else if (code === 100000) {
       //ok
@@ -377,7 +392,7 @@ export default class HbookerService {
       volumes = [];
       for (let i = 0; i < divisionList.length; i++) {
         const division = divisionList[i];
-        const ChapterListResp = await this.httpPost("/book/get_updated_chapter_by_division_id", {
+        const ChapterListResp = await this.httpPost("/chapter/get_updated_chapter_by_division_id", {
           data: {
             division_id: division.division_id,
             last_update_time: 0,
@@ -397,6 +412,11 @@ export default class HbookerService {
           raw: division,
         });
       }
+      db.volumes.put({
+        bookId: book.bookId,
+        updateDate: new Date().valueOf(),
+        data: volumes
+      });
     }
     return volumes;
   }

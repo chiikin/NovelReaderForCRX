@@ -1,7 +1,23 @@
 <template>
   <div>
-    <van-nav-bar title="书架" />
-    <div>用户信息</div>
+    <div class="header">
+      <div>
+        <!-- <img class="logo" :alt="appInfo.appName" :src="appInfo.logo" /> -->
+        <h1 v-text="appInfo.appName"></h1>
+      </div>
+      <div>
+        <img class="avatar" alt="头像" :src="session.avatar" />
+        <p class="user-name" v-text="session.nickName"></p>
+      </div>
+      <div>
+        <van-icon
+          name="wap-nav"
+          style="font-size: 24px; cursor: pointer"
+          title="操作菜单"
+          @click="openMenu"
+        />
+      </div>
+    </div>
     <van-dropdown-menu>
       <van-dropdown-item
         v-model="currentBookshelfId"
@@ -51,6 +67,11 @@
         </div>
       </div>
     </div>
+    <van-action-sheet
+      v-model="actionShow"
+      :actions="actions"
+      @select="onSelect"
+    />
   </div>
 </template>
 
@@ -60,7 +81,13 @@ moment.locale("zh-CN");
 export default {
   name: "Bookshelf",
   data() {
-    return {};
+    return {
+      actionShow: false,
+      actions: [
+        { name: "退出登录", action: "logout" },
+        { name: "退出登录并清除数据", action: "logoutAndClearData" },
+      ],
+    };
   },
   computed: {
     currentBookshelfId: {
@@ -69,28 +96,47 @@ export default {
         return bookshelf ? bookshelf.shelfId : undefined;
       },
       set: function (value) {
-        this.$store.dispatch({ type: "switchBookshelf", shelfId: value });
+        if (value == "0") {
+          //todo 刷新书架
+          this.dispatch({ type: "loadBookList", noCache: true });
+        } else {
+          this.dispatch({ type: "switchBookshelf", shelfId: value });
+        }
       },
     },
-    bookshelfList() {
-      return this.$store.state.bookshelfList;
-    },
+    // bookshelfList() {
+    //   return this.$store.state.bookshelfList;
+    // },
     bookshelfListOptions() {
-      return this.$store.state.bookshelfList.map((x) => {
+      const options = this.$store.state.bookshelfList.map((x) => {
         return {
           text: x.shelfName,
           value: x.shelfId,
         };
       });
+      options.push({
+        text: "刷新书架",
+        value: "0",
+      });
+      return options;
     },
     books() {
       const { bookList } = this.$store.state;
       return bookList || [];
     },
+    session() {
+      return this.$store.state.session || {};
+    },
+    appInfo() {
+      const { webApp, webAppList = [] } = this.$store.state;
+      return webAppList.find((x) => x.appId === webApp) || {};
+    },
+    onSelect(item) {
+      this.dispatch({ type: item.action });
+    },
   },
   created() {
-    if (!this.currentBookshelfId)
-      this.dispatch({ type: "loadBookshelf" });
+    if (!this.currentBookshelfId) this.dispatch({ type: "loadBookshelf" });
   },
   methods: {
     getWordCountDisplay(count) {
@@ -114,6 +160,9 @@ export default {
         bookId: book.bookId,
         //chapterId: book.lastReadInfo.chapterId,
       });
+    },
+    openMenu() {
+      //todo
     },
   },
 };
@@ -157,6 +206,28 @@ export default {
     font-size: 12px;
     color: #fff;
     border-radius: 10px;
+  }
+}
+.header {
+  display: flex;
+  padding: 5px 20px;
+  > div {
+    width: 33.33%;
+  }
+
+  .avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 24px;
+  }
+  .user-name {
+    padding: 0;
+    margin: 0;
+    font-size: 16px;
+  }
+  .logo {
+    width: 48px;
+    height: 48px;
   }
 }
 </style>

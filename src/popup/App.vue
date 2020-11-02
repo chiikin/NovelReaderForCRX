@@ -18,5 +18,6 @@ export default {
 .nr-app {
   width: 350px;
   height: 500px;
+  overflow: hidden;
 }
 </style>

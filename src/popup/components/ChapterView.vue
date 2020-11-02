@@ -1,11 +1,11 @@
 <template>
   <div class="chapter-view" :style="viewStyle">
-    <h1 class="chapter-title" v-text="readingChapter.title"></h1>
+    <h1 class="chapter-title" v-text="readingChapter.chapterName"></h1>
     <div class="chapter-content" :style="contentStyle">
       <p
         v-for="(section, index) in cotnentSections"
         :key="index"
-        v-text="section"
+        v-html="section"
       ></p>
     </div>
     <div class="chapter-btns" style="text-align: center">
@@ -107,7 +107,7 @@ export default {
     cotnentSections() {
       const {content=""}=this.readingChapter;
       //const content = this.content || "";
-      return content.split("\n");
+      return content.trim().split("\n");
       // .map((text) => {
       //   return `<p>${text}</p>`;
       // })
@@ -151,10 +151,16 @@ export default {
       this.theme = settings.theme || this.themes[0];
       this.fontSize = settings.fontSize || 1;
     },
-    nextChapter() {},
-    prevChapter() {},
+    nextChapter() {
+        this.dispatch({type: "viewNextChapter",chapterId:this.readingChapter.chapterId});
+        this.$el.scrollTo(0,0);
+    },
+    prevChapter() {
+        this.dispatch({type: "viewPrevChapter",chapterId:this.readingChapter.chapterId});
+        this.$el.scrollTo(0,0);
+    },
     openBookshelf(){
-      this.$store.dispatch({type: "openPage", pageName: "Bookshelf"});
+      this.dispatch({type: "openPage", pageName: "Bookshelf"});
     }
   },
 };
@@ -162,9 +168,10 @@ export default {
 
 <style lang="scss">
 .chapter-view {
-  overflow: hidden;
+  overflow: auto;
   position: relative;
   padding: 0.5rem;
+  height: 100%;
   .chapter-title {
   }
   .chapter-content {
@@ -180,6 +187,9 @@ export default {
   }
   .chapter-theme-btn.active {
     outline: 1px solid lightcoral;
+  }
+  img{
+    width: 260px;
   }
 }
 </style>

@@ -1,5 +1,6 @@
 <template>
   <van-form @submit="onSubmit">
+    <h1 style="text-align:center;">刺猬猫登录</h1>
     <van-field
       v-model="account"
       name="用户名"
@@ -34,7 +35,7 @@ export default {
   methods: {
     async onSubmit() {
       this.loading = true;
-      await this.$store.dispatch({
+      await this.dispatch({
         type: "login",
         account: this.account,
         password: this.password,
