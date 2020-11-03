@@ -14,7 +14,7 @@
           name="wap-nav"
           style="font-size: 24px; cursor: pointer"
           title="操作菜单"
-          @click="openMenu"
+          @click="actionShow=true"
         />
       </div>
     </div>
@@ -131,9 +131,7 @@ export default {
       const { webApp, webAppList = [] } = this.$store.state;
       return webAppList.find((x) => x.appId === webApp) || {};
     },
-    onSelect(item) {
-      this.dispatch({ type: item.action });
-    },
+    
   },
   created() {
     if (!this.currentBookshelfId) this.dispatch({ type: "loadBookshelf" });
@@ -161,8 +159,11 @@ export default {
         //chapterId: book.lastReadInfo.chapterId,
       });
     },
-    openMenu() {
-      //todo
+    onSelect(item) {
+      // if (item.action === "logout") this.dispatch({ type: "logout" });
+      // else if (item.action === "logoutAndClearData")
+      //   this.dispatch({ type: "logoutAndClearData" });
+        this.dispatch({ type: item.action });
     },
   },
 };
