@@ -516,6 +516,15 @@ account	书客956986535
         shelf_id: shelf.shelfId,
       },
     });
+    // return 
+    // {
+    //   data:{
+    //     reader_info:{},
+    //     chapter_info:{
+    //       auth_access:"1"
+    //     }
+    //   }
+    // }
   }
   //#endregion
 }
