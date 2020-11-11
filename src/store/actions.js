@@ -1,7 +1,6 @@
 import * as types from "./mutation-types";
-import {  getService } from "../server";
+import { getService } from "../server";
 import { localStorage as storage } from "../utils/webStorage";
-
 
 const storageKeys = {
   readingChapter: "readingChapter",
@@ -68,13 +67,9 @@ export async function login(context, payload) {
   context.dispatch({ type: "openPage", pageName: "Bookshelf" });
 }
 
-export async function logout(context, payload){
-  
-}
+export async function logout(context, payload) {}
 
-export async function logoutAndClearData(context, payload){
-  
-}
+export async function logoutAndClearData(context, payload) {}
 
 export async function loadBookshelf(context, payload) {
   const { webApp } = context.state;
@@ -93,11 +88,10 @@ export async function loadBookList(context, payload) {
   const service = getService(webApp);
   let bookshelf;
   if (payload.shelfId) {
-    bookshelf = bookshelfList.find(x => {
+    bookshelf = bookshelfList.find((x) => {
       return x.shelfId === payload.shelfId;
     });
-  }
-  else {
+  } else {
     bookshelf = currentBookshelf;
   }
 
@@ -130,7 +124,7 @@ export async function loadVolumeList(context, payload) {
 
 function getChapterFromVolume(volumes, chapterId, offset) {
   const allChapters = [];
-  offset=offset||0;
+  offset = offset || 0;
 
   volumes.forEach((vol) => {
     Array.prototype.push.apply(allChapters, vol.chapters);
@@ -139,20 +133,13 @@ function getChapterFromVolume(volumes, chapterId, offset) {
   for (let i = 0; i < allChapters.length; i++) {
     const chapter = allChapters[i];
     if (chapter.chapterId === chapterId) {
-      if (offset === 0) {
-        return chapter;
-      } else if (offset < 0) {
-        const index = i - offset;
-        if (index >= 0) {
-          return allChapters[index];
-        }
-      } else if (offset > 0) {
-        const index = i + offset;
-        if (index < allChapters.length) {
-          return allChapters[index];
-        } else {
-          throw "没有最新章节";
-        }
+      const index = i + offset;
+      if (index < 0) {
+        throw "已经是第一章节";
+      } else if (index >= allChapters.length) {
+        throw "已经是最新章节";
+      } else {
+        return allChapters[index];
       }
     }
   }
@@ -161,9 +148,9 @@ function getChapterFromVolume(volumes, chapterId, offset) {
 
 export async function loadChapter(context, payload) {
   const { readingBookVolumes, readingBook, webApp } = context.state;
-  const { chapterId,offset, noCache } = payload;
+  const { chapterId, offset, noCache } = payload;
   const service = getService(webApp);
-  const chapter = getChapterFromVolume(readingBookVolumes, chapterId,offset);
+  const chapter = getChapterFromVolume(readingBookVolumes, chapterId, offset);
 
   const chapterDetail = await service.getChapterDetail({
     book: readingBook,

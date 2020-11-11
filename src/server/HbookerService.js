@@ -1,6 +1,6 @@
 import axios from "axios";
 import crypto from "crypto";
-import moment from 'moment';
+import moment from "moment";
 
 import { openUserDB } from "./hbookerdb";
 
@@ -46,12 +46,12 @@ function getNowString() {
 }
 /**
  * 判断目标时间是否过期
- * @param {string} compareDate 
+ * @param {string} compareDate
  * @param {*} intervalSeconds 有效间隔时间，单位：秒。默认1小时
  */
 function isExpire(compareDate, intervalSeconds) {
   const date = moment(compareDate, dateFormat);
-  return date.diff(new Date(), 'seconds') > intervalSeconds;
+  return date.diff(new Date(), "seconds") > intervalSeconds;
 }
 
 export default class HbookerService {
@@ -74,7 +74,7 @@ export default class HbookerService {
       // 只能用在 'PUT', 'POST' 和 'PATCH' 这几个请求方法
       // 后面数组中的函数必须返回一个字符串，或 ArrayBuffer，或 Stream
       transformRequest: [
-        function (data, headers) {
+        function(data, headers) {
           // 对 data 进行任意转换处理
           if (data instanceof FormData || typeof data === "string") {
             return data;
@@ -154,7 +154,7 @@ export default class HbookerService {
       }
     );
 
-    ajax.interceptors.request.use(function (config) {
+    ajax.interceptors.request.use(function(config) {
       //const identity = identityManager.getIdentity(serverKey) || {};
       const { session } = _this;
       let tokenPara = {};
@@ -392,12 +392,15 @@ export default class HbookerService {
       volumes = [];
       for (let i = 0; i < divisionList.length; i++) {
         const division = divisionList[i];
-        const ChapterListResp = await this.httpPost("/chapter/get_updated_chapter_by_division_id", {
-          data: {
-            division_id: division.division_id,
-            last_update_time: 0,
-          },
-        });
+        const ChapterListResp = await this.httpPost(
+          "/chapter/get_updated_chapter_by_division_id",
+          {
+            data: {
+              division_id: division.division_id,
+              last_update_time: 0,
+            },
+          }
+        );
         let chapters = ChapterListResp.chapter_list.map((chapter) => {
           return {
             chapterId: chapter.chapter_id,
@@ -415,7 +418,7 @@ export default class HbookerService {
       db.volumes.put({
         bookId: book.bookId,
         updateDate: new Date().valueOf(),
-        data: volumes
+        data: volumes,
       });
     }
     return volumes;
@@ -471,6 +474,48 @@ export default class HbookerService {
       }
     }
     return chapterDetail;
+  }
+  /**
+   * 设置阅读进度
+   * @param {*} param0
+   */
+  async setLastReadChapter({ book, chapter }) {
+    //POST /bookshelf/set_last_read_chapter
+    /**
+   * 
+   * last_read_chapter_id	106208235
+app_version	2.6.020
+device_token	ciweimao_867401041011125
+book_id	100192934
+login_token	03efe96ffad843aefe7a3b9d049532e4
+account	书客956986535
+   */
+    this.ensureSession();
+    await this.httpPost("/bookshelf/set_last_read_chapter", {
+      data: {
+        last_read_chapter_id: chapter.chapterId,
+        book_id: book.bookId,
+      },
+    });
+  }
+
+  async buyChapter({ shelf, book, chapter }) {
+    /**
+     * POST /chapter/buy 
+ * app_version	2.6.020
+device_token	ciweimao_867401041011125
+shelf_id	58026
+chapter_id	106217146
+login_token	03efe96ffad843aefe7a3b9d049532e4
+account	书客956986535
+ */
+    this.ensureSession();
+    const data = await this.httpPost("/chapter/buy", {
+      data: {
+        chapter_id: chapter.chapterId,
+        shelf_id: shelf.shelfId,
+      },
+    });
   }
   //#endregion
 }
