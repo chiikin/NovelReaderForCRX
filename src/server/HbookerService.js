@@ -557,7 +557,7 @@ account	书客956986535
    * 设置自动购买标记
    * @param {object} param0
    */
-  setAutoBuy({ shelf, book }) {
+  async setAutoBuy({ shelf, book }) {
     this.ensureSession();
     const { db, session } = this;
     db.autoBuyBooks.put(

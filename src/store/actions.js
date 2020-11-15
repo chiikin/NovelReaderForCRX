@@ -175,11 +175,11 @@ async function loadChapterDetial(context, payload) {
   const service = getService(webApp);
   const chapter = getChapterFromVolume(readingBookVolumes, chapterId, offset);
   let detailNoCache = false;
-  if (
-    chapter.isPaid &&
-    !chapter.authAccess &&
-    service.isAutoBuy({ shelf: currentBookshelf, book: readingBook })
-  ) {
+  let autoBuy = await service.isAutoBuy({
+    shelf: currentBookshelf,
+    book: readingBook,
+  });
+  if (chapter.isPaid && !chapter.authAccess && autoBuy) {
     // 购买章节
     await service.buyChapter({
       shelf: currentBookshelf,
@@ -208,11 +208,11 @@ export async function loadChapter(context, payload) {
   const chapter = getChapterFromVolume(readingBookVolumes, chapterId, offset);
 
   let detailNoCache = false;
-  if (
-    chapter.isPaid &&
-    !chapter.authAccess &&
-    service.isAutoBuy({ shelf: currentBookshelf, book: readingBook })
-  ) {
+  let autoBuy = await service.isAutoBuy({
+    shelf: currentBookshelf,
+    book: readingBook,
+  });
+  if (chapter.isPaid && !chapter.authAccess && autoBuy) {
     // 购买章节
     await service.buyChapter({
       shelf: currentBookshelf,
@@ -279,7 +279,7 @@ export async function viewBook(context, payload) {
  * @param {*} payload
  */
 export async function viewChapter(context, payload) {
-  const chapterDetail =await loadChapterDetial(context, payload);
+  const chapterDetail = await loadChapterDetial(context, payload);
   if (chapterDetail) {
     context.state.readingChapter = chapterDetail;
   } else {
@@ -300,7 +300,9 @@ export async function viewNextChapter(context, payload) {
     offset: 1,
   });
   // 预加载一章
-  loadChapterDetial(context, payload);
+  setTimeout(() => {
+    loadChapterDetial(context, payload);
+  }, 1000);
 }
 
 export async function viewPrevChapter(context, payload) {
@@ -308,5 +310,40 @@ export async function viewPrevChapter(context, payload) {
     type: "viewChapter",
     chapterId: payload.chapterId,
     offset: -1,
+  });
+}
+
+/**
+ *
+ * @param {*} context
+ * @param {*} payload
+ */
+export async function setCurrentBookAutoBuy(context, payload) {
+  const { readingBook, webApp, currentBookshelf } = context.state;
+
+  const service = getService(webApp);
+
+  await service.setAutoBuy({
+    book: readingBook,
+    shelf: currentBookshelf,
+  });
+}
+
+export async function buyChapter(context, payload){
+  const {
+    readingBookVolumes,
+    readingBook,
+    webApp,
+    currentBookshelf,
+  } = context.state;
+  const { chapterId, offset, noCache } = payload;
+
+  const service = getService(webApp);
+  const chapter = getChapterFromVolume(readingBookVolumes, chapterId, offset);
+  // 购买章节
+  await service.buyChapter({
+    shelf: currentBookshelf,
+    book: readingBook,
+    chapter: chapter,
   });
 }

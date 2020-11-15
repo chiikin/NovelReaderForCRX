@@ -32,9 +32,12 @@
       <van-nav-bar
         left-text="返回"
         left-arrow
+        right-text="刷新"
         @click-left="viewBody = 'content'"
+        @click-right="refreshVolume"
       >
       </van-nav-bar>
+
       <div class="volume-list">
         <div
           class="volume-item"
@@ -45,8 +48,12 @@
             class="volume-item-title"
             @click="toggleOpenVolume(volume.volumeId)"
           >
-          <van-icon :name="openedVolumeKey[volume.volumeId]?'arrow-up':'arrow-down'" />
-            {{ volume.volumeName }}&nbsp;({{volume.chapters.length}})
+            <van-icon
+              :name="
+                openedVolumeKey[volume.volumeId] ? 'arrow-up' : 'arrow-down'
+              "
+            />
+            {{ volume.volumeName }}&nbsp;({{ volume.chapters.length }})
           </h3>
           <div
             class="volume-item-chapters"
@@ -58,6 +65,7 @@
               :key="chapter.chapterId"
               @click="viewChapter(chapter.chapterId)"
             >
+              <lock-icon :lock="chapter.locked"></lock-icon>
               {{ chapter.chapterName }}
             </p>
           </div>
@@ -132,10 +140,13 @@
 
 <script>
 import { localStorage as storage } from "../../utils/webStorage";
-
+import LockIcon from "./lockIcon.vue";
 const chapterViewSettingKey = "ChapterViewSetting";
 export default {
   name: "ChapterView",
+  components: {
+    "lock-icon": LockIcon,
+  },
   data() {
     return {
       viewBody: "content",
@@ -200,8 +211,11 @@ export default {
   },
   watch: {
     readingChapter(newVal) {
-      if (newVal && newVal.isPaid && newVal.authAccess) {
+      if (newVal && newVal.isPaid && !newVal.authAccess) {
         this.buyChapterVisible = true;
+      }
+      else{
+        this.buyChapterVisible = false;
       }
     },
   },
@@ -259,8 +273,26 @@ export default {
     openBookshelf() {
       this.dispatch({ type: "openPage", pageName: "Bookshelf" });
     },
-    buyChapter() {
+    async buyChapter() {
       //TODO :
+      if (this.autoBuy) {
+        await this.dispatch({
+          type: "setCurrentBookAutoBuy",
+        });
+      }
+      //buyChapter
+      await this.dispatch({
+        type: "buyChapter",
+        chapterId: this.readingChapter.chapterId,
+        offset: 0,
+      });
+      await this.dispatch({
+        type: "viewChapter",
+        chapterId: this.readingChapter.chapterId,
+        offset: 0,
+        noCache:true
+      });
+      this.buyChapterVisible=false;
     },
     viewVolume() {
       this.viewBody = "volume";
@@ -279,8 +311,14 @@ export default {
         chapterId: chapterId,
         offset: 0,
       });
-      this.viewBody = 'content';
+      this.viewBody = "content";
     },
+    refreshVolume(){
+      this.dispatch({
+        type: "loadVolumeList",
+        noCache:true
+      });
+    }
   },
 };
 </script>
@@ -329,11 +367,10 @@ export default {
   }
   .volume-item {
     margin: 0 5px;
-    user-select:none;
+    user-select: none;
   }
   .volume-item-title {
     cursor: pointer;
-    
   }
   .volume-item-chapters {
     margin: 0 5px;
