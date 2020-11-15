@@ -6,6 +6,7 @@ import 'vant/lib/index.css';
 import components from "./components"
 import axios from "axios"
 import {dispatch} from "../utils/VuexHelper"
+import "./main.scss"
 
 Vue.use(Vant);
 Vue.use(components);

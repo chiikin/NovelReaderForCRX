@@ -17,6 +17,7 @@ export function openUserDB(account) {
         books:"shelfId",
         volumes: "bookId",
         chapterDetails: "chapterId,bookId,lastReadTime",
+        autoBuyBooks:"bookId"
     });
     userDB.open();
     return userDB;

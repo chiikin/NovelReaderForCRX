@@ -146,20 +146,90 @@ function getChapterFromVolume(volumes, chapterId, offset) {
   throw "无效章节";
 }
 
+// function currentBookCanPreload(context, chapterId, offset) {
+//   const {
+//     readingBookVolumes,
+//     readingBook,
+//     webApp,
+//     currentBookshelf,
+//   } = context.state;
+//   const service = getService(webApp);
+//   const chapter = getChapterFromVolume(readingBookVolumes, chapterId, offset);
+
+//   return (
+//     !chapter.isPaid ||
+//     chapter.authAccess ||
+//     service.isAutoBuy({ shelf: currentBookshelf, book: readingBook })
+//   );
+// }
+
+async function loadChapterDetial(context, payload) {
+  const {
+    readingBookVolumes,
+    readingBook,
+    webApp,
+    currentBookshelf,
+  } = context.state;
+  const { chapterId, offset, noCache } = payload;
+
+  const service = getService(webApp);
+  const chapter = getChapterFromVolume(readingBookVolumes, chapterId, offset);
+  let detailNoCache = false;
+  if (
+    chapter.isPaid &&
+    !chapter.authAccess &&
+    service.isAutoBuy({ shelf: currentBookshelf, book: readingBook })
+  ) {
+    // 购买章节
+    await service.buyChapter({
+      shelf: currentBookshelf,
+      book: readingBook,
+      chapter: chapter,
+    });
+    detailNoCache = true;
+  }
+  const chapterDetail = await service.getChapterDetail({
+    book: readingBook,
+    chapter,
+    noCache: detailNoCache ? true : noCache,
+  });
+  return chapterDetail;
+}
+
 export async function loadChapter(context, payload) {
-  const { readingBookVolumes, readingBook, webApp } = context.state;
+  const {
+    readingBookVolumes,
+    readingBook,
+    webApp,
+    currentBookshelf,
+  } = context.state;
   const { chapterId, offset, noCache } = payload;
   const service = getService(webApp);
   const chapter = getChapterFromVolume(readingBookVolumes, chapterId, offset);
 
+  let detailNoCache = false;
+  if (
+    chapter.isPaid &&
+    !chapter.authAccess &&
+    service.isAutoBuy({ shelf: currentBookshelf, book: readingBook })
+  ) {
+    // 购买章节
+    await service.buyChapter({
+      shelf: currentBookshelf,
+      book: readingBook,
+      chapter: chapter,
+    });
+    detailNoCache = true;
+  }
   const chapterDetail = await service.getChapterDetail({
     book: readingBook,
     chapter,
-    noCache,
+    noCache: detailNoCache ? true : noCache,
   });
 
-  if (chapterDetail) context.state.readingChapter = chapterDetail;
-  else {
+  if (chapterDetail) {
+    context.state.readingChapter = chapterDetail;
+  } else {
     if (offset === 1) throw "没有最新章节";
     else throw "无效章节";
   }
@@ -173,7 +243,7 @@ export async function viewBook(context, payload) {
 
   context.state.readingBook = book;
 
-  await context.dispatch({ type: "loadVolumeList" });
+  await context.dispatch({ type: "loadVolumeList", nowCache: true });
 
   context.state.readingChapter = undefined;
   let chapterId;
@@ -193,7 +263,7 @@ export async function viewBook(context, payload) {
 
   if (chapterId) {
     await context.dispatch({
-      type: "loadChapter",
+      type: "viewChapter",
       chapterId: chapterId,
       offset: 0,
     });
@@ -208,18 +278,14 @@ export async function viewBook(context, payload) {
  * @param {*} context
  * @param {*} payload
  */
-export function viewChapter(context, payload) {
-  const readingChapter = context.state.readingChapter;
-  readingChapter.bookId = payload.bookId;
-  readingChapter.chapterId = payload.chapterId;
-  readingChapter.title = "";
-  readingChapter.loaded = false;
-  readingChapter.content = "";
-  context.dispatch({
-    type: "loadChapter",
-    bookId: payload.bookId,
-    chapterId: payload.chapterId,
-  });
+export async function viewChapter(context, payload) {
+  const chapterDetail =await loadChapterDetial(context, payload);
+  if (chapterDetail) {
+    context.state.readingChapter = chapterDetail;
+  } else {
+    if (offset === 1) throw "没有最新章节";
+    else throw "无效章节";
+  }
 }
 
 /**
@@ -229,15 +295,17 @@ export function viewChapter(context, payload) {
  */
 export async function viewNextChapter(context, payload) {
   await context.dispatch({
-    type: "loadChapter",
+    type: "viewChapter",
     chapterId: payload.chapterId,
     offset: 1,
   });
+  // 预加载一章
+  loadChapterDetial(context, payload);
 }
 
 export async function viewPrevChapter(context, payload) {
   await context.dispatch({
-    type: "loadChapter",
+    type: "viewChapter",
     chapterId: payload.chapterId,
     offset: -1,
   });

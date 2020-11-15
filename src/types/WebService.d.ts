@@ -20,6 +20,8 @@ interface ChapterDetail {
 interface Chapter {
     chapterId: string,
     chapterName: string,
+    isPaid:boolean,     // 是否需要购买
+    authAccess:boolean, // 是否已购买
     raw: any
 }
 interface Volume {

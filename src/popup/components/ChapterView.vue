@@ -1,21 +1,72 @@
 <template>
   <div class="chapter-view" :style="viewStyle">
-    <h1 class="chapter-title" v-text="readingChapter.chapterName"></h1>
-    <div class="chapter-content" :style="contentStyle">
-      <p
-        v-for="(section, index) in cotnentSections"
-        :key="index"
-        v-html="section"
-      ></p>
+    <!-- 阅读 START -->
+    <div class="chapter-view-body" v-if="viewBody === 'content'">
+      <h1 class="chapter-title" v-text="readingChapter.chapterName"></h1>
+      <div class="chapter-content" :style="contentStyle">
+        <p
+          v-for="(section, index) in cotnentSections"
+          :key="index"
+          v-html="section"
+        ></p>
+      </div>
+      <div class="chapter-btns" style="text-align: center">
+        <van-button type="default" @click="openBookshelf">返回</van-button>
+        <van-button type="default" @click="prevChapter"
+          ><van-icon name="arrow-left"
+        /></van-button>
+        <van-button type="default" @click="viewVolume"
+          ><van-icon name="bars"
+        /></van-button>
+        <van-button type="default" @click="nextChapter"
+          ><van-icon name="arrow"
+        /></van-button>
+        <van-button type="default" @click="viewSettingVisible = true"
+          ><van-icon name="setting-o"></van-icon
+        ></van-button>
+      </div>
     </div>
-    <div class="chapter-btns" style="text-align: center">
-      <van-button type="default" @click="openBookshelf">返回</van-button>
-      <van-button type="default" @click="prevChapter">上一章</van-button>
-      <van-button type="default" @click="nextChapter">下一章</van-button>
-      <van-button type="default" @click="viewSettingVisible = true"
-        ><van-icon name="setting-o"></van-icon
-      ></van-button>
+    <!-- 阅读 END -->
+    <!-- 目录 START -->
+    <div class="chapter-volume-body" v-else>
+      <van-nav-bar
+        left-text="返回"
+        left-arrow
+        @click-left="viewBody = 'content'"
+      >
+      </van-nav-bar>
+      <div class="volume-list">
+        <div
+          class="volume-item"
+          v-for="volume in readingBookVolumes"
+          :key="volume.volumeId"
+        >
+          <h3
+            class="volume-item-title"
+            @click="toggleOpenVolume(volume.volumeId)"
+          >
+          <van-icon :name="openedVolumeKey[volume.volumeId]?'arrow-up':'arrow-down'" />
+            {{ volume.volumeName }}&nbsp;({{volume.chapters.length}})
+          </h3>
+          <div
+            class="volume-item-chapters"
+            v-show="openedVolumeKey[volume.volumeId]"
+          >
+            <p
+              class="volume-item-chapter-item"
+              v-for="chapter in volume.chapters"
+              :key="chapter.chapterId"
+              @click="viewChapter(chapter.chapterId)"
+            >
+              {{ chapter.chapterName }}
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
+    <!-- 目录 END -->
+
+    <!-- 阅读样式设置 START -->
     <van-popup
       v-model="viewSettingVisible"
       closeable
@@ -49,6 +100,33 @@
         </span>
       </p>
     </van-popup>
+    <!-- 阅读样式设置 END -->
+    <!-- 章节购买设置 START -->
+    <van-popup
+      v-model="buyChapterVisible"
+      closeable
+      position="bottom"
+      :style="{ height: '30%' }"
+      :overlay-style="{ 'background-color': 'rgba(0,0,0,.1)' }"
+    >
+      <div style="margin: 50px 25px 10px 25px">
+        <van-button block type="info" native-type="button" @click="buyChapter">
+          订阅本章节
+        </van-button>
+      </div>
+      <div style="margin: 0 25px; font-size: 16px">
+        <p>
+          <van-switch
+            v-model="autoBuy"
+            size="16px"
+            active-color="#07c160"
+            inactive-color="#ee0a24"
+          />
+          此后遇到收费章节自动订阅
+        </p>
+      </div>
+    </van-popup>
+    <!-- 章节购买设置 END -->
   </div>
 </template>
 
@@ -60,7 +138,11 @@ export default {
   name: "ChapterView",
   data() {
     return {
+      viewBody: "content",
       viewSettingVisible: false,
+      buyChapterVisible: false,
+      autoBuy: false,
+      openedVolumeKey: {},
       fontSize: 1,
       theme: {},
       themes: [
@@ -85,12 +167,11 @@ export default {
           color: "#000",
         },
       ],
-      
     };
   },
   computed: {
     readingChapter() {
-      return this.$store.state.readingChapter||{};
+      return this.$store.state.readingChapter || {};
     },
     contentStyle() {
       return {
@@ -105,13 +186,23 @@ export default {
       };
     },
     cotnentSections() {
-      const {content=""}=this.readingChapter;
+      const { content = "" } = this.readingChapter;
       //const content = this.content || "";
       return content.trim().split("\n");
       // .map((text) => {
       //   return `<p>${text}</p>`;
       // })
       // .join("");
+    },
+    readingBookVolumes() {
+      return this.$store.state.readingBookVolumes || [];
+    },
+  },
+  watch: {
+    readingChapter(newVal) {
+      if (newVal && newVal.isPaid && newVal.authAccess) {
+        this.buyChapterVisible = true;
+      }
     },
   },
   created() {
@@ -152,26 +243,57 @@ export default {
       this.fontSize = settings.fontSize || 1;
     },
     nextChapter() {
-        this.dispatch({type: "viewNextChapter",chapterId:this.readingChapter.chapterId});
-        this.$el.scrollTo(0,0);
+      this.dispatch({
+        type: "viewNextChapter",
+        chapterId: this.readingChapter.chapterId,
+      });
+      this.$el.scrollTo(0, 0);
     },
     prevChapter() {
-        this.dispatch({type: "viewPrevChapter",chapterId:this.readingChapter.chapterId});
-        this.$el.scrollTo(0,0);
+      this.dispatch({
+        type: "viewPrevChapter",
+        chapterId: this.readingChapter.chapterId,
+      });
+      this.$el.scrollTo(0, 0);
     },
-    openBookshelf(){
-      this.dispatch({type: "openPage", pageName: "Bookshelf"});
-    }
+    openBookshelf() {
+      this.dispatch({ type: "openPage", pageName: "Bookshelf" });
+    },
+    buyChapter() {
+      //TODO :
+    },
+    viewVolume() {
+      this.viewBody = "volume";
+    },
+    toggleOpenVolume(volumeId) {
+      this.$set(
+        this.openedVolumeKey,
+        volumeId,
+        !this.openedVolumeKey[volumeId]
+      );
+      //this.openedVolumeKey[volumeId]=!this.openedVolumeKey[volumeId];
+    },
+    viewChapter(chapterId) {
+      this.dispatch({
+        type: "viewChapter",
+        chapterId: chapterId,
+        offset: 0,
+      });
+      this.viewBody = 'content';
+    },
   },
 };
 </script>
 
 <style lang="scss">
 .chapter-view {
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   position: relative;
-  padding: 0.5rem;
   height: 100%;
+  .chapter-view-body {
+    margin: 0.5rem;
+  }
   .chapter-title {
   }
   .chapter-content {
@@ -188,8 +310,40 @@ export default {
   .chapter-theme-btn.active {
     outline: 1px solid lightcoral;
   }
-  img{
+  img {
     width: 260px;
+  }
+}
+.chapter-volume-body {
+  overflow-x: hidden;
+  overflow-y: auto;
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  .volume-list {
+    flex: 1;
+    overflow: auto;
+    background: #fff;
+  }
+  .volume-item {
+    margin: 0 5px;
+    user-select:none;
+  }
+  .volume-item-title {
+    cursor: pointer;
+    
+  }
+  .volume-item-chapters {
+    margin: 0 5px;
+  }
+  .volume-item-chapter-item {
+    border-bottom: 1px solid silver;
+    cursor: pointer;
+  }
+  .volume-item-chapter-item:hover {
+    background: silver;
   }
 }
 </style>

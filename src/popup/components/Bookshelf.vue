@@ -1,29 +1,19 @@
 <template>
-  <div>
-    <div class="header">
-      <div>
-        <!-- <img class="logo" :alt="appInfo.appName" :src="appInfo.logo" /> -->
-        <h1 v-text="appInfo.appName"></h1>
-      </div>
-      <div>
-        <img class="avatar" alt="头像" :src="session.avatar" />
-        <p class="user-name" v-text="session.nickName"></p>
-      </div>
-      <div>
+  <div class="shelf-container">
+    <van-nav-bar>
+      <template #title>
+        <span @click="shelfListActionShow = true"
+          >{{ currentShelfName }} <van-icon name="arrow-down"
+        /></span>
+      </template>
+      <template #right>
         <van-icon
           name="wap-nav"
-          style="font-size: 24px; cursor: pointer"
-          title="操作菜单"
-          @click="actionShow=true"
+          class="handler-bar"
+          @click="actionShow = true"
         />
-      </div>
-    </div>
-    <van-dropdown-menu>
-      <van-dropdown-item
-        v-model="currentBookshelfId"
-        :options="bookshelfListOptions"
-      />
-    </van-dropdown-menu>
+      </template>
+    </van-nav-bar>
     <!-- <div class="book-list">
       <div class="book-item">
         <div class="book-cover">
@@ -56,22 +46,37 @@
           <p class="book-sub-title">
             {{ book.author }} / {{ getWordCountDisplay(book.totalWordCount) }}
           </p>
-          <p class="book-chapter-info van-ellipsis">
+          <p
+            class="book-chapter-info van-ellipsis"
+            :title="book.lastChapterInfo.chapterName"
+          >
             更新: {{ getUpdateTimeDisplay(book.lastChapterInfo.date) }} /
             {{ book.lastChapterInfo.chapterName }}
           </p>
-          <p class="book-chapter-info van-ellipsis">
+          <p
+            class="book-chapter-info van-ellipsis"
+            :title="book.lastReadInfo ? book.lastReadInfo.chapterName : '未读'"
+          >
             进度:
             {{ book.lastReadInfo ? book.lastReadInfo.chapterName : "未读" }}
           </p>
         </div>
       </div>
     </div>
+    <!--操作列表 START-->
     <van-action-sheet
       v-model="actionShow"
       :actions="actions"
       @select="onSelect"
     />
+    <!--操作列表 END-->
+    <!--书架列表 START-->
+    <van-action-sheet
+      v-model="shelfListActionShow"
+      :actions="bookshelfListActions"
+      @select="switchShelf"
+    />
+    <!--书架列表 END-->
   </div>
 </template>
 
@@ -83,7 +88,9 @@ export default {
   data() {
     return {
       actionShow: false,
+      shelfListActionShow: false,
       actions: [
+        { name: "刷新当前书架", action: "refreshShelf" },
         { name: "退出登录", action: "logout" },
         { name: "退出登录并清除数据", action: "logoutAndClearData" },
       ],
@@ -114,11 +121,25 @@ export default {
           value: x.shelfId,
         };
       });
-      options.push({
-        text: "刷新书架",
-        value: "0",
-      });
+      // options.push({
+      //   text: "刷新书架",
+      //   value: "0",
+      // });
       return options;
+    },
+    bookshelfListActions() {
+      return this.$store.state.bookshelfList.map((x) => {
+        return {
+          name: x.shelfName,
+          action: x.shelfId,
+        };
+      });
+    },
+    currentShelfName() {
+      let item = this.bookshelfListActions.find(
+        (x) => x.action === this.currentBookshelfId
+      );
+      return item ? item.name : "书架";
     },
     books() {
       const { bookList } = this.$store.state;
@@ -131,7 +152,6 @@ export default {
       const { webApp, webAppList = [] } = this.$store.state;
       return webAppList.find((x) => x.appId === webApp) || {};
     },
-    
   },
   created() {
     if (!this.currentBookshelfId) this.dispatch({ type: "loadBookshelf" });
@@ -163,7 +183,16 @@ export default {
       // if (item.action === "logout") this.dispatch({ type: "logout" });
       // else if (item.action === "logoutAndClearData")
       //   this.dispatch({ type: "logoutAndClearData" });
+      if (item.action === "refreshShelf") {
+        this.dispatch({ type: "loadBookList", noCache: true });
+        this.actionShow = false;
+      } else {
         this.dispatch({ type: item.action });
+      }
+    },
+    switchShelf(item) {
+      this.dispatch({ type: "switchBookshelf", shelfId: item.action });
+      this.shelfListActionShow = false;
     },
   },
 };
@@ -172,8 +201,12 @@ export default {
 <style lang="scss" scoped>
 .book-list {
   display: block;
+  flex: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
   .book-info {
     flex: 1;
+    overflow: hidden;
     > p {
       margin: 5px;
     }
@@ -209,26 +242,14 @@ export default {
     border-radius: 10px;
   }
 }
-.header {
+.handler-bar {
+  font-size: 24px;
+}
+.shelf-container {
+  overflow-x: hidden;
+  overflow-y: auto;
   display: flex;
-  padding: 5px 20px;
-  > div {
-    width: 33.33%;
-  }
-
-  .avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 24px;
-  }
-  .user-name {
-    padding: 0;
-    margin: 0;
-    font-size: 16px;
-  }
-  .logo {
-    width: 48px;
-    height: 48px;
-  }
+  flex-direction: column;
+  height: 100%;
 }
 </style>

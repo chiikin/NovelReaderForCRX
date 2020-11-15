@@ -42,7 +42,7 @@ function decrypt(data, key) {
 
 const dateFormat = "YYYY-MM-DD HH:mm:ss";
 function getNowString() {
-  return moment().format();
+  return moment().format(dateFormat);
 }
 /**
  * 判断目标时间是否过期
@@ -382,7 +382,8 @@ export default class HbookerService {
         .where("bookId")
         .equals(book.bookId)
         .first();
-      if (cacheData) volumes = cacheData.data;
+      if (cacheData && isExpire(cacheData.updateDate, 1800))
+        volumes = cacheData.data;
     }
     if (!volumes) {
       const divisionResp = await this.httpGet("/book/get_division_list", {
@@ -405,6 +406,9 @@ export default class HbookerService {
           return {
             chapterId: chapter.chapter_id,
             chapterName: chapter.chapter_title,
+            isPaid: chapter.is_paid === "1",
+            authAccess: chapter.auth_access === "1",
+            locked: chapter.is_paid === "1" && chapter.auth_access !== "1",
             raw: chapter,
           };
         });
@@ -417,7 +421,7 @@ export default class HbookerService {
       }
       db.volumes.put({
         bookId: book.bookId,
-        updateDate: new Date().valueOf(),
+        updateDate: getNowString(),
         data: volumes,
       });
     }
@@ -457,17 +461,22 @@ export default class HbookerService {
           chapterId: chapterInfo.chapter_id,
           chapterName: contentTitle,
           content: decryptContent.trim(),
+          isPaid: chapterInfo.is_paid === "1",
+          authAccess: chapterInfo.auth_access === "1",
           raw: chapterInfo,
         };
-        db.chapterDetails.put(
-          {
-            bookId: book.bookId,
-            chapterId: chapter.chapterId,
-            lastReadTime: new Date().valueOf(),
-            data: chapterDetail,
-          },
-          [chapter.chapterId]
-        );
+        if (chapterInfo.is_paid !== "1" || chapterInfo.auth_access === "1") {
+          // 不需要购买或已购买，则缓存反之不缓存
+          db.chapterDetails.put(
+            {
+              bookId: book.bookId,
+              chapterId: chapter.chapterId,
+              lastReadTime: new Date().valueOf(),
+              data: chapterDetail,
+            },
+            [chapter.chapterId]
+          );
+        }
       } else {
         console.error(chapterDetailResp);
         throw "获取章节内容失败";
@@ -516,7 +525,8 @@ account	书客956986535
         shelf_id: shelf.shelfId,
       },
     });
-    // return 
+    return data.chapter_info.auth_access === "1";
+    // return
     // {
     //   data:{
     //     reader_info:{},
@@ -525,6 +535,38 @@ account	书客956986535
     //     }
     //   }
     // }
+  }
+
+  /**
+   * 是否自动购买
+   * @param {object} param0
+   */
+  async isAutoBuy({ shelf, book }) {
+    this.ensureSession();
+    const { db, session } = this;
+    const cacheData = await db.autoBuyBooks
+      .where("bookId")
+      .equals(book.bookId)
+      .first();
+    if (cacheData && cacheData.autoBuy) {
+      return true;
+    } else return false;
+  }
+
+  /**
+   * 设置自动购买标记
+   * @param {object} param0
+   */
+  setAutoBuy({ shelf, book }) {
+    this.ensureSession();
+    const { db, session } = this;
+    db.autoBuyBooks.put(
+      {
+        bookId: book.bookId,
+        autoBuy: true,
+      },
+      [book.bookId]
+    );
   }
   //#endregion
 }
