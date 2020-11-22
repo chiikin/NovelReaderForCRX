@@ -1,8 +1,8 @@
 {
-  "name": "novelreader-forcrx",
-  "version": "0.1.1",
-  "description": "A boilerplate to start a Vue web extension.",
-  "author": "Achmad F. Ibrahim <acfatah@gmail.com>",
+  "name": "novel-reader-for-crx",
+  "version": "0.1.2",
+  "description": "基于chrome的小说阅读器扩展.",
+  "author": "chiikin",
   "license": "MIT",
   "engines": {
     "node": ">=10"
