@@ -1,6 +1,6 @@
 {
   "name": "vue-web-extension-boilerplate",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A boilerplate to start a Vue web extension.",
   "author": "Achmad F. Ibrahim <acfatah@gmail.com>",
   "license": "MIT",
@@ -33,7 +33,7 @@
     "babel-eslint": "^10.0.3",
     "babel-loader": "^8.0.2",
     "copy-webpack-plugin": "^5.1.1",
-    "core-js": "^3.0.1",
+    "core-js": "^3.6.5",
     "cross-env": "^5.2.0",
     "css-loader": "^3.4.0",
     "ejs": "^2.6.1",

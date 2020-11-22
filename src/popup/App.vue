@@ -1,13 +1,23 @@
 <template>
-  <div>
-    <p>popup.js</p>
+  <div class="nr-app">
+    <component v-bind:is="pageComponent"></component>
   </div>
 </template>
 
 <script>
 export default {
-  mounted() {
-    console.log('popup.js mounted')
-  }
-}
+  computed: {
+    pageComponent() {
+      return this.$store.state.pageComponent;
+    },
+  },
+};
 </script>
+
+<style lang="scss" scoped>
+.nr-app {
+  width: 350px;
+  height: 500px;
+  overflow: hidden;
+}
+</style>
