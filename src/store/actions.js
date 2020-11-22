@@ -1,4 +1,3 @@
-import * as types from "./mutation-types";
 import { getService } from "../server";
 import { localStorage as storage } from "../utils/webStorage";
 
@@ -21,6 +20,7 @@ export function saveSnapshot(context) {
     readingBook, //{},
     readingBookVolumes,
     readingChapter, //{}
+    pageHistory,
   } = context.state;
 
   storage.setObject("appVuexSnapshot", {
@@ -33,6 +33,7 @@ export function saveSnapshot(context) {
     readingBook, //{},
     readingBookVolumes,
     readingChapter, //{}
+    pageHistory,
   });
 }
 
@@ -67,9 +68,22 @@ export async function login(context, payload) {
   context.dispatch({ type: "openPage", pageName: "Bookshelf" });
 }
 
-export async function logout(context, payload) {}
+export async function logout(context, payload) {
+  const { webApp } = context.state;
+  const service = getService(webApp);
+  context.state.session = undefined;
+  await service.logout({clear:false});
 
-export async function logoutAndClearData(context, payload) {}
+  context.dispatch({ type: "openPage", pageName: "Login" });
+}
+
+export async function logoutAndClearData(context, payload) {
+  const { webApp } = context.state;
+  const service = getService(webApp);
+  storage.remove("appVuexSnapshot");
+  await service.logout({ clear: true });
+  context.dispatch({ type: "openPage", pageName: "Login" });
+}
 
 export async function loadBookshelf(context, payload) {
   const { webApp } = context.state;
@@ -329,7 +343,7 @@ export async function setCurrentBookAutoBuy(context, payload) {
   });
 }
 
-export async function buyChapter(context, payload){
+export async function buyChapter(context, payload) {
   const {
     readingBookVolumes,
     readingBook,
@@ -346,4 +360,19 @@ export async function buyChapter(context, payload){
     book: readingBook,
     chapter: chapter,
   });
+}
+
+export function about(context) {
+  context.state.pageHistory.push(context.state.pageComponent);
+  context.dispatch({ type: "openPage", pageName: "About" });
+}
+
+export function donate(context) {
+  context.state.pageHistory.push(context.state.pageComponent);
+  context.dispatch({ type: "openPage", pageName: "Donate" });
+}
+
+export function backPage(context) {
+  const page = context.state.pageHistory.pop();
+  context.dispatch({ type: "openPage", pageName: page });
 }

@@ -36,6 +36,6 @@ store.dispatch({ type: "recoverSession" }).then(() => {
 
 
 //页面卸载时保存vuex快照，以便于下次快速恢复
-window.addEventListener('beforeunload', () => {
-  store.dispatch({ type: "saveSnapshot" })
-});
+// window.addEventListener('beforeunload', () => {
+//   store.dispatch({ type: "saveSnapshot" })
+// });

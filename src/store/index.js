@@ -22,6 +22,8 @@ export default new Vuex.Store({
       readingBook: undefined,//{},
       readingBookVolumes: [],
       readingChapter: undefined,//{}
+
+      pageHistory:[],
     });
 
     return {
@@ -30,6 +32,7 @@ export default new Vuex.Store({
         appName: "刺猬猫",
         logo:""
       }],
+      
       ...runtimeData
     };
   },

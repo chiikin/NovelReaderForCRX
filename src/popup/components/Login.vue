@@ -1,6 +1,6 @@
 <template>
   <van-form @submit="onSubmit">
-    <h1 style="text-align:center;">刺猬猫登录</h1>
+    <h1 style="text-align: center">刺猬猫登录</h1>
     <van-field
       v-model="account"
       name="用户名"
@@ -18,6 +18,10 @@
     />
     <div style="margin: 16px">
       <van-button round block type="info" native-type="submit">登录</van-button>
+    </div>
+    <div style="text-align:center;font-size:14px;    cursor: pointer;">
+      <a @click="about">关于</a> ·
+      <a @click="donate">捐赠</a>
     </div>
   </van-form>
 </template>
@@ -41,6 +45,16 @@ export default {
         password: this.password,
       });
       this.loading = false;
+    },
+    about() {
+      this.dispatch({
+        type: "about",
+      });
+    },
+    donate() {
+      this.dispatch({
+        type: "donate",
+      });
     },
   },
 };

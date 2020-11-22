@@ -2,7 +2,7 @@ import axios from "axios";
 import crypto from "crypto";
 import moment from "moment";
 
-import { openUserDB } from "./hbookerdb";
+import { openUserDB, deleteDB } from "./hbookerdb";
 
 import { localStorage as storage } from "../utils/webStorage";
 const para = {
@@ -271,10 +271,23 @@ export default class HbookerService {
       avatar: session.raw.reader_info.avatar_url,
     };
   }
-  logout() {
-    this.session = undefined;
+  logout({ clear }) {
     //todo 关闭db
+
+    if (clear) {
+      const account = this.session ? this.session.account : "";
+      storage.remove(`${storageKeys.session}:${account}`);
+      //deleteDB(account);
+      // 删除表数据
+      this.db.bookshelfs.delete();
+      this.db.books.delete();
+      this.db.volumes.delete();
+      this.db.chapterDetails.delete();
+      this.db.autoBuyBooks.delete();
+    }
     this.db.close();
+    this.session = undefined;
+
     return Promise.resolve();
   }
   /**

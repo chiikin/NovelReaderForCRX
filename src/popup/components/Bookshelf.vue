@@ -93,6 +93,8 @@ export default {
         { name: "刷新当前书架", action: "refreshShelf" },
         { name: "退出登录", action: "logout" },
         { name: "退出登录并清除数据", action: "logoutAndClearData" },
+        { name: "关于", action: "about" },
+        { name: "捐赠", action: "donate" },
       ],
     };
   },
